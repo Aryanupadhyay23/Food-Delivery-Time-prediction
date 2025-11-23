@@ -1,5 +1,6 @@
 # ignore all actual data files
 *
+!*/          
 !*.dvc
 !**/*.dvc
 !.gitignore
