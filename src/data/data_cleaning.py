@@ -1,13 +1,26 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import logging
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 def load_data(data_path: Path) -> pd.DataFrame:
+    logger.info(f"Loading data from {data_path}")
     df = pd.read_csv(data_path)
+    logger.info(f"Data loaded with shape {df.shape}")
     return df
 
+
 def city_features(df):
+    logger.info("Creating city-related features")
+
     df["city_name"] = df["Delivery_person_ID"].str.split("RES").str[0]
 
     city_mapping = {
@@ -26,11 +39,16 @@ def city_features(df):
 
     return df
 
+
 def age_feature(df):
+    logger.info("Filtering delivery persons with age >= 18")
     return df[df["Delivery_person_Age"] >= 18]
 
+
 def rating_feature_cleaning(df):
+    logger.info("Filtering delivery persons with rating <= 5")
     return df[df["Delivery_person_Ratings"] <= 5]
+
 
 def decimal_to_hhmm(x):
     if pd.isna(x) or str(x).strip() == "":
@@ -55,6 +73,7 @@ def decimal_to_hhmm(x):
     except:
         return np.nan
 
+
 def time_of_day(time):
     if pd.isna(time):
         return np.nan
@@ -70,7 +89,10 @@ def time_of_day(time):
     else:
         return "night"
 
+
 def cleaning_time_features(df):
+    logger.info("Cleaning and creating time-based features")
+
     df["order_time"] = df["Time_Orderd"].apply(decimal_to_hhmm)
     df["order_pickup_time"] = df["Time_Order_picked"].apply(decimal_to_hhmm)
 
@@ -85,7 +107,10 @@ def cleaning_time_features(df):
 
     return df
 
+
 def to_lower(df):
+    logger.info("Converting categorical columns to lowercase")
+
     cols = [
         "Weather_conditions",
         "Road_traffic_density",
@@ -100,6 +125,8 @@ def to_lower(df):
 
 
 def clean_location_features(df, threshold=1.0):
+    logger.info("Cleaning latitude and longitude features")
+
     location_cols = [
         "Restaurant_latitude",
         "Restaurant_longitude",
@@ -115,6 +142,8 @@ def clean_location_features(df, threshold=1.0):
 
 
 def add_manhattan_distance(df):
+    logger.info("Adding manhattan distance feature")
+
     km_per_degree_lat = 111.32
     km_per_degree_lon = 111.32 * np.cos(
         np.radians(
@@ -136,6 +165,8 @@ def add_manhattan_distance(df):
 
 
 def drop_unused_features(df):
+    logger.info("Dropping unused columns")
+
     cols_to_drop = [
         "ID",
         "Delivery_person_ID",
@@ -149,37 +180,40 @@ def drop_unused_features(df):
 
     return df.drop(columns=cols_to_drop, errors="ignore")
 
+
 def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
-    cleaned_data = (
-    df
-    .pipe(city_features)
-    .pipe(age_feature)
-    .pipe(rating_feature_cleaning)
-    .pipe(cleaning_time_features)
-    .pipe(to_lower)
-    .pipe(clean_location_features)
-    .pipe(add_manhattan_distance)
-    .pipe(drop_unused_features)
+    logger.info("Starting full data cleaning pipeline")
+
+    cleaned_df = (
+        data
+        .pipe(city_features)
+        .pipe(age_feature)
+        .pipe(rating_feature_cleaning)
+        .pipe(cleaning_time_features)
+        .pipe(to_lower)
+        .pipe(clean_location_features)
+        .pipe(add_manhattan_distance)
+        .pipe(drop_unused_features)
     )
 
-    cleaned_data.to_csv(saved_data_path,index=False)
+    cleaned_df.to_csv(saved_data_path, index=False)
+    logger.info(f"Cleaned data saved at {saved_data_path}")
 
 
 if __name__ == "__main__":
-    # root path
+    logger.info("Data cleaning script started")
+
     root_path = Path(__file__).parent.parent.parent
-    # data save directory
+
     cleaned_data_save_dir = root_path / "data" / "cleaned"
-    # make directory if not exits
-    cleaned_data_save_dir.mkdir(exist_ok=True,parents=True)
-    # cleaned data file name
+    cleaned_data_save_dir.mkdir(exist_ok=True, parents=True)
+
     cleaned_data_filename = "zomato_cleaned.csv"
-    # data save path
     cleaned_data_save_path = cleaned_data_save_dir / cleaned_data_filename
-    # data load path
+
     data_load_path = root_path / "data" / "raw" / "Zomato-Dataset.csv"
-    
-    # load the data
+
     df = load_data(data_load_path)
-    # clean the data and save
     cleaned_data(data=df, saved_data_path=cleaned_data_save_path)
+
+    logger.info("Data cleaning pipeline completed successfully")
