@@ -1,1 +1,8 @@
-
+stages:
+  data_cleaning:
+    cmd: python src/data/data_cleaning.py
+    deps:
+      - src/data/data_cleaning.py
+      - data/raw/Zomato-Dataset.csv
+    outs:
+      - data/cleaned/zomato_cleaned.csv
