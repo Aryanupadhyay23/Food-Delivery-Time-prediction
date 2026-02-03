@@ -242,3 +242,4 @@ if __name__ == "__main__":
     cleaned_data(data=df, saved_data_path=cleaned_data_save_path)
 
     logger.info("Data cleaning pipeline completed successfully")
+
