@@ -90,6 +90,21 @@ def time_of_day(time):
         return "night"
 
 
+def order_date_features(df):
+    logger.info("Creating order date features")
+
+    # Convert to datetime safely
+    df["Order_Date"] = pd.to_datetime(df["Order_Date"], errors="coerce")
+
+    df["order_day"] = df["Order_Date"].dt.day
+    df["order_month"] = df["Order_Date"].dt.month
+    df["day_name"] = df["Order_Date"].dt.day_name().str.lower()
+    df['is_weekend'] = df['Order_Date'].dt.dayofweek.isin([5, 6]).astype(int)
+
+    return df
+
+
+
 def cleaning_time_features(df):
     logger.info("Cleaning and creating time-based features")
 
@@ -173,9 +188,7 @@ def drop_unused_features(df):
         "Order_Date",
         "Time_Orderd",
         "Time_Order_picked",
-        "City",
-        "order_time",
-        "order_pickup_time"
+        "City"
     ]
 
     return df.drop(columns=cols_to_drop, errors="ignore")
@@ -213,6 +226,7 @@ def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
         .pipe(city_features)
         .pipe(age_feature)
         .pipe(rating_feature_cleaning)
+        .pipe(order_date_features)
         .pipe(cleaning_time_features)
         .pipe(to_lower)
         .pipe(clean_location_features)
