@@ -181,6 +181,30 @@ def drop_unused_features(df):
     return df.drop(columns=cols_to_drop, errors="ignore")
 
 
+def rename_features(df):
+    logger.info("Renaming columns")
+
+    rename_map = {
+        "Delivery_person_Age": "delivery_person_age",
+        "Delivery_person_Ratings": "delivery_person_ratings",
+        "Restaurant_latitude": "restaurant_lat",
+        "Restaurant_longitude": "restaurant_long",
+        "Delivery_location_latitude": "location_lat",
+        "Delivery_location_longitude": "location_long",
+        "Weather_conditions": "weather",
+        "Road_traffic_density": "traffic_density",
+        "Vehicle_condition": "vehicle_condition",
+        "Type_of_order": "order_type",
+        "Type_of_vehicle": "vehicle_type",
+        "multiple_deliveries": "multiple_deliveries",
+        "Festival": "festival",
+        "Time_taken (min)": "time_taken"
+    }
+
+    return df.rename(columns=rename_map)
+
+
+
 def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
     logger.info("Starting full data cleaning pipeline")
 
@@ -194,6 +218,7 @@ def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
         .pipe(clean_location_features)
         .pipe(add_manhattan_distance)
         .pipe(drop_unused_features)
+        .pipe(rename_features)
     )
 
     cleaned_df.to_csv(saved_data_path, index=False)
