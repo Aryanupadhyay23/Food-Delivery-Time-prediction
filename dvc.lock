@@ -1,0 +1,14 @@
+schema: '2.0'
+stages:
+  data_ingestion:
+    cmd: python src/data/data_ingestion.py
+    deps:
+    - path: src/data/data_ingestion.py
+      hash: md5
+      md5: ade6a6469b4e8ce6064f82f75f4385e9
+      size: 1020
+    outs:
+    - path: data/raw/Zomato-Dataset.csv
+      hash: md5
+      md5: a732ab879bba5f3a9b66a620d299069e
+      size: 6371825

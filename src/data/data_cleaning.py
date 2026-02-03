@@ -1,0 +1,185 @@
+import numpy as np
+import pandas as pd
+from pathlib import Path
+
+
+def load_data(data_path: Path) -> pd.DataFrame:
+    df = pd.read_csv(data_path)
+    return df
+
+def city_features(df):
+    df["city_name"] = df["Delivery_person_ID"].str.split("RES").str[0]
+
+    city_mapping = {
+        'DEH': 'dehradun', 'KOC': 'kochi', 'PUNE': 'pune',
+        'LUDH': 'ludhiana', 'KNP': 'kanpur', 'MUM': 'mumbai',
+        'MYS': 'mysore', 'HYD': 'hyderabad', 'KOL': 'kolkata',
+        'RANCHI': 'ranchi', 'COIMB': 'coimbatore', 'CHEN': 'chennai',
+        'JAP': 'jaipur', 'SUR': 'surat', 'BANG': 'bangalore',
+        'GOA': 'goa', 'AURG': 'aurangabad', 'AGR': 'agra',
+        'VAD': 'vadodara', 'ALH': 'prayagraj',
+        'BHP': 'bhopal', 'INDO': 'indore'
+    }
+
+    df["city_name"] = df["city_name"].replace(city_mapping)
+    df["city_type"] = df["City"].str.lower()
+
+    return df
+
+def age_feature(df):
+    return df[df["Delivery_person_Age"] >= 18]
+
+def rating_feature_cleaning(df):
+    return df[df["Delivery_person_Ratings"] <= 5]
+
+def decimal_to_hhmm(x):
+    if pd.isna(x) or str(x).strip() == "":
+        return np.nan
+
+    x = str(x).strip()
+
+    if ":" in x:
+        try:
+            hour, minute = int(x.split(":")[0]), int(x.split(":")[1])
+            hour = hour % 24
+            return f"{hour:02d}:{minute:02d}"
+        except:
+            return np.nan
+
+    try:
+        frac = float(x)
+        total_minutes = round(frac * 24 * 60)
+        hours = (total_minutes // 60) % 24
+        minutes = total_minutes % 60
+        return f"{hours:02d}:{minutes:02d}"
+    except:
+        return np.nan
+
+def time_of_day(time):
+    if pd.isna(time):
+        return np.nan
+
+    time = str(time)
+
+    if "06:00" < time <= "11:00":
+        return "morning"
+    elif "11:00" < time <= "16:00":
+        return "lunch"
+    elif "16:00" < time <= "21:00":
+        return "dinner"
+    else:
+        return "night"
+
+def cleaning_time_features(df):
+    df["order_time"] = df["Time_Orderd"].apply(decimal_to_hhmm)
+    df["order_pickup_time"] = df["Time_Order_picked"].apply(decimal_to_hhmm)
+
+    df["time_of_day"] = df["order_time"].apply(time_of_day)
+
+    order_time = pd.to_datetime(df["order_time"], format="%H:%M")
+    pickup_time = pd.to_datetime(df["order_pickup_time"], format="%H:%M")
+
+    diff = pickup_time - order_time
+    df["prep_time_minutes"] = diff.dt.total_seconds() / 60
+    df.loc[df["prep_time_minutes"] < 0, "prep_time_minutes"] += 1440
+
+    return df
+
+def to_lower(df):
+    cols = [
+        "Weather_conditions",
+        "Road_traffic_density",
+        "Type_of_order",
+        "Festival"
+    ]
+
+    for col in cols:
+        df[col] = df[col].str.lower()
+
+    return df
+
+
+def clean_location_features(df, threshold=1.0):
+    location_cols = [
+        "Restaurant_latitude",
+        "Restaurant_longitude",
+        "Delivery_location_latitude",
+        "Delivery_location_longitude"
+    ]
+
+    for col in location_cols:
+        df[col] = df[col].abs()
+        df.loc[df[col] < threshold, col] = np.nan
+
+    return df
+
+
+def add_manhattan_distance(df):
+    km_per_degree_lat = 111.32
+    km_per_degree_lon = 111.32 * np.cos(
+        np.radians(
+            (df["Restaurant_latitude"] + df["Delivery_location_latitude"]) / 2
+        )
+    )
+
+    d_lat = np.abs(
+        df["Restaurant_latitude"] - df["Delivery_location_latitude"]
+    ) * km_per_degree_lat
+
+    d_lon = np.abs(
+        df["Restaurant_longitude"] - df["Delivery_location_longitude"]
+    ) * km_per_degree_lon
+
+    df["manhattan_distance_km"] = d_lat + d_lon
+
+    return df
+
+
+def drop_unused_features(df):
+    cols_to_drop = [
+        "ID",
+        "Delivery_person_ID",
+        "Order_Date",
+        "Time_Orderd",
+        "Time_Order_picked",
+        "City",
+        "order_time",
+        "order_pickup_time"
+    ]
+
+    return df.drop(columns=cols_to_drop, errors="ignore")
+
+def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
+    cleaned_data = (
+    df
+    .pipe(city_features)
+    .pipe(age_feature)
+    .pipe(rating_feature_cleaning)
+    .pipe(cleaning_time_features)
+    .pipe(to_lower)
+    .pipe(clean_location_features)
+    .pipe(add_manhattan_distance)
+    .pipe(drop_unused_features)
+    )
+
+    cleaned_data.to_csv(saved_data_path,index=False)
+
+
+if __name__ == "__main__":
+    # root path
+    root_path = Path(__file__).parent.parent.parent
+    # data save directory
+    cleaned_data_save_dir = root_path / "data" / "cleaned"
+    # make directory if not exits
+    cleaned_data_save_dir.mkdir(exist_ok=True,parents=True)
+    # cleaned data file name
+    cleaned_data_filename = "zomato_cleaned.csv"
+    # data save path
+    cleaned_data_save_path = cleaned_data_save_dir / cleaned_data_filename
+    # data load path
+    data_load_path = root_path / "data" / "raw" / "Zomato-Dataset.csv"
+    
+    # load the data
+    df = load_data(data_load_path)
+    # clean the data and save
+    cleaned_data(data=df, saved_data_path=cleaned_data_save_path)

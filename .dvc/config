@@ -1,0 +1,4 @@
+[core]
+    remote = s3remote
+['remote "s3remote"']
+    url = s3://ai-ml-datasets-23/zomato-food-delivery-time-prediction/dvc-store
