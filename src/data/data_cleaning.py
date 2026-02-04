@@ -42,7 +42,13 @@ def city_features(df):
 
 def age_feature(df):
     logger.info("Filtering delivery persons with age >= 18")
+
+    df["Delivery_person_Age"] = pd.to_numeric(
+        df["Delivery_person_Age"], errors="coerce"
+    )
+
     return df[df["Delivery_person_Age"] >= 18]
+
 
 
 def rating_feature_cleaning(df):
@@ -98,40 +104,44 @@ def time_of_day(time):
 
 def order_date_features(df):
     logger.info("Creating order date features")
-
-    # Convert to datetime safely
-    df["Order_Date"] = pd.to_datetime(df["Order_Date"], errors="coerce")
-
+    df["Order_Date"] = pd.to_datetime(
+        df["Order_Date"],
+        dayfirst=True,
+        errors="coerce"
+    )
     df["order_day"] = df["Order_Date"].dt.day
     df["order_month"] = df["Order_Date"].dt.month
     df["day_name"] = df["Order_Date"].dt.day_name().str.lower()
-    df['is_weekend'] = df['Order_Date'].dt.dayofweek.isin([5, 6]).astype(int)
-
+    df["is_weekend"] = df["Order_Date"].dt.dayofweek.isin([5, 6]).astype(int)
     return df
-
 
 def cleaning_time_features(df):
     logger.info("Creating time-based features")
 
+    # Convert raw time columns once
     order_time = df["Time_Orderd"].apply(decimal_to_hhmm)
     pickup_time = df["Time_Order_picked"].apply(decimal_to_hhmm)
 
-    # Assign final columns
+    # Assign engineered columns
     df["order_time"] = order_time
     df["order_pickup_time"] = pickup_time
     df["time_of_day"] = order_time.apply(time_of_day)
 
-    # Vectorized datetime conversion
+    # Convert to datetime for computation
     order_dt = pd.to_datetime(order_time, format="%H:%M", errors="coerce")
     pickup_dt = pd.to_datetime(pickup_time, format="%H:%M", errors="coerce")
 
-    # Compute prep time
+    # order hour (0–23)
+    df["order_hour"] = order_dt.dt.hour
+
+    # Compute preparation time (handle midnight crossing)
     prep_minutes = (pickup_dt - order_dt).dt.total_seconds() / 60
     prep_minutes = prep_minutes.where(prep_minutes >= 0, prep_minutes + 1440)
 
     df["prep_time_minutes"] = prep_minutes
 
     return df
+
 
 
 def to_lower(df):
@@ -195,7 +205,6 @@ def drop_unused_features(df):
 
     cols_to_drop = [
         "ID",
-        "Delivery_person_ID",
         "Order_Date",
         "Time_Orderd",
         "Time_Order_picked",
@@ -222,7 +231,9 @@ def rename_features(df):
         "Type_of_vehicle": "vehicle_type",
         "multiple_deliveries": "multiple_deliveries",
         "Festival": "festival",
-        "Time_taken (min)": "time_taken"
+        "Time_taken (min)": "time_taken",
+        "Delivery_person_ID":"rider_id",
+        "manhattan_distance_km":"distance"
     }
 
     return df.rename(columns=rename_map)
