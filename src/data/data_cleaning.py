@@ -177,25 +177,28 @@ def clean_location_features(df, threshold=1.0):
     return df
 
 
-def add_manhattan_distance(df):
-    logger.info("Adding manhattan distance feature")
+def add_haversine_distance(df):
+    logger.info("Adding haversine distance feature")
 
-    km_per_degree_lat = 111.32
-    km_per_degree_lon = 111.32 * np.cos(
-        np.radians(
-            (df["Restaurant_latitude"] + df["Delivery_location_latitude"]) / 2
-        )
+    # Earth radius in kilometers
+    R = 6371.0
+
+    lat1 = np.radians(df["Restaurant_latitude"])
+    lon1 = np.radians(df["Restaurant_longitude"])
+    lat2 = np.radians(df["Delivery_location_latitude"])
+    lon2 = np.radians(df["Delivery_location_longitude"])
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        np.sin(dlat / 2) ** 2
+        + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
     )
 
-    d_lat = np.abs(
-        df["Restaurant_latitude"] - df["Delivery_location_latitude"]
-    ) * km_per_degree_lat
+    c = 2 * np.arcsin(np.sqrt(a))
 
-    d_lon = np.abs(
-        df["Restaurant_longitude"] - df["Delivery_location_longitude"]
-    ) * km_per_degree_lon
-
-    df["manhattan_distance_km"] = d_lat + d_lon
+    df["haversine_distance_km"] = R * c
 
     return df
 
@@ -205,7 +208,7 @@ def drop_unused_features(df):
 
     cols_to_drop = [
         "ID",
-        "Order_Date",
+        "rider_id"
         "Time_Orderd",
         "Time_Order_picked",
         "City"
@@ -218,8 +221,8 @@ def rename_features(df):
     logger.info("Renaming columns")
 
     rename_map = {
-        "Delivery_person_Age": "delivery_person_age",
-        "Delivery_person_Ratings": "delivery_person_ratings",
+        "Delivery_person_Age": "rider_age",
+        "Delivery_person_Ratings": "rider_ratings",
         "Restaurant_latitude": "restaurant_lat",
         "Restaurant_longitude": "restaurant_long",
         "Delivery_location_latitude": "location_lat",
@@ -233,7 +236,8 @@ def rename_features(df):
         "Festival": "festival",
         "Time_taken (min)": "time_taken",
         "Delivery_person_ID":"rider_id",
-        "manhattan_distance_km":"distance"
+        "haversine_distance_km":"distance",
+        "Order_Date":"order_date"
     }
 
     return df.rename(columns=rename_map)
@@ -252,7 +256,7 @@ def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
         .pipe(cleaning_time_features)
         .pipe(to_lower)
         .pipe(clean_location_features)
-        .pipe(add_manhattan_distance)
+        .pipe(add_haversine_distance)
         .pipe(drop_unused_features)
         .pipe(rename_features)
     )
