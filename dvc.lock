@@ -21,10 +21,10 @@ stages:
       size: 6371825
     - path: src/data/data_cleaning.py
       hash: md5
-      md5: 81cfcc79a7a54dc762cd27b22fd8d445
-      size: 7243
+      md5: 33d738384afca24c246bc460c5f5972f
+      size: 7631
     outs:
     - path: data/cleaned/zomato_cleaned.csv
       hash: md5
-      md5: a6fd6a4461dc1b7f472d10476e3322bd
-      size: 6898183
+      md5: e8b126a0a3cceb92f6d4f061a94d0240
+      size: 7144176

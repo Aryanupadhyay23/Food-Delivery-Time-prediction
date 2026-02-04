@@ -80,14 +80,20 @@ def time_of_day(time):
 
     time = str(time)
 
-    if "06:00" < time <= "11:00":
-        return "morning"
-    elif "11:00" < time <= "16:00":
-        return "lunch"
-    elif "16:00" < time <= "21:00":
-        return "dinner"
+    if "05:00" <= time < "08:00":
+        return "early_morning"
+    elif "08:00" <= time < "11:00":
+        return "breakfast"
+    elif "11:00" <= time < "14:00":
+        return "lunch_peak"
+    elif "14:00" <= time < "17:00":
+        return "afternoon"
+    elif "17:00" <= time < "20:00":
+        return "evening_snacks"
+    elif "20:00" <= time < "23:00":
+        return "dinner_peak"
     else:
-        return "night"
+        return "late_night"
 
 
 def order_date_features(df):
@@ -104,21 +110,26 @@ def order_date_features(df):
     return df
 
 
-
 def cleaning_time_features(df):
-    logger.info("Cleaning and creating time-based features")
+    logger.info("Creating time-based features")
 
-    df["order_time"] = df["Time_Orderd"].apply(decimal_to_hhmm)
-    df["order_pickup_time"] = df["Time_Order_picked"].apply(decimal_to_hhmm)
+    order_time = df["Time_Orderd"].apply(decimal_to_hhmm)
+    pickup_time = df["Time_Order_picked"].apply(decimal_to_hhmm)
 
-    df["time_of_day"] = df["order_time"].apply(time_of_day)
+    # Assign final columns
+    df["order_time"] = order_time
+    df["order_pickup_time"] = pickup_time
+    df["time_of_day"] = order_time.apply(time_of_day)
 
-    order_time = pd.to_datetime(df["order_time"], format="%H:%M")
-    pickup_time = pd.to_datetime(df["order_pickup_time"], format="%H:%M")
+    # Vectorized datetime conversion
+    order_dt = pd.to_datetime(order_time, format="%H:%M", errors="coerce")
+    pickup_dt = pd.to_datetime(pickup_time, format="%H:%M", errors="coerce")
 
-    diff = pickup_time - order_time
-    df["prep_time_minutes"] = diff.dt.total_seconds() / 60
-    df.loc[df["prep_time_minutes"] < 0, "prep_time_minutes"] += 1440
+    # Compute prep time
+    prep_minutes = (pickup_dt - order_dt).dt.total_seconds() / 60
+    prep_minutes = prep_minutes.where(prep_minutes >= 0, prep_minutes + 1440)
+
+    df["prep_time_minutes"] = prep_minutes
 
     return df
 
