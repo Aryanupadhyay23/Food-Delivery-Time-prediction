@@ -84,22 +84,27 @@ def time_of_day(time):
     if pd.isna(time):
         return np.nan
 
-    time = str(time)
+    t = pd.to_datetime(time, format="%H:%M", errors="coerce")
+    if pd.isna(t):
+        return np.nan
 
-    if "05:00" <= time < "08:00":
+    hour = t.hour
+
+    if 5 <= hour < 8:
         return "early_morning"
-    elif "08:00" <= time < "11:00":
+    elif 8 <= hour < 11:
         return "breakfast"
-    elif "11:00" <= time < "14:00":
+    elif 11 <= hour < 14:
         return "lunch_peak"
-    elif "14:00" <= time < "17:00":
+    elif 14 <= hour < 17:
         return "afternoon"
-    elif "17:00" <= time < "20:00":
+    elif 17 <= hour < 20:
         return "evening_snacks"
-    elif "20:00" <= time < "23:00":
+    elif 20 <= hour < 23:
         return "dinner_peak"
     else:
         return "late_night"
+
 
 
 def order_date_features(df):
@@ -203,15 +208,31 @@ def add_haversine_distance(df):
     return df
 
 
+def add_distance_bins(df):
+    logger.info("Creating distance bins")
+
+    df["distance_bin"] = pd.cut(
+        df["haversine_distance_km"],
+        bins=[0, 5, 10, 15, 25, np.inf],
+        labels=["short", "medium", "long", "very_long", "extreme"],
+        right=False
+    )
+
+    return df
+
+
 def drop_unused_features(df):
     logger.info("Dropping unused columns")
 
     cols_to_drop = [
         "ID",
-        "rider_id"
+        "rider_id",
         "Time_Orderd",
         "Time_Order_picked",
-        "City"
+        "City",
+        "order_time",
+        "order_pickup_time",
+        "prep_time_minutes"
     ]
 
     return df.drop(columns=cols_to_drop, errors="ignore")
@@ -257,6 +278,7 @@ def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
         .pipe(to_lower)
         .pipe(clean_location_features)
         .pipe(add_haversine_distance)
+        .pipe(add_distance_bins)
         .pipe(drop_unused_features)
         .pipe(rename_features)
     )
