@@ -21,10 +21,26 @@ stages:
       size: 6371825
     - path: src/data/data_cleaning.py
       hash: md5
-      md5: 01a1781fcfe7bf10c808aefd4a63354f
-      size: 8466
+      md5: dd8cf6467b4a3414a8bb9c4c516d5801
+      size: 8470
     outs:
     - path: data/cleaned/zomato_cleaned.csv
       hash: md5
       md5: 628b17d1a1e46bbd583a022a0d2d6e83
       size: 8095173
+  data_preprocessing:
+    cmd: python src/data/data_preprocessing.py
+    deps:
+    - path: data/cleaned/zomato_cleaned.csv
+      hash: md5
+      md5: 628b17d1a1e46bbd583a022a0d2d6e83
+      size: 8095173
+    - path: src/data/data_preprocessing.py
+      hash: md5
+      md5: 28e4e809b35dc073fa14f71fb2813c01
+      size: 2294
+    outs:
+    - path: data/interim/food_delivery_interim.csv
+      hash: md5
+      md5: 9e75f43e6610bd5f8f5f4f9c35da5ff7
+      size: 3861577
