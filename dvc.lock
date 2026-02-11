@@ -21,8 +21,8 @@ stages:
       size: 6371825
     - path: src/data/data_cleaning.py
       hash: md5
-      md5: dd8cf6467b4a3414a8bb9c4c516d5801
-      size: 8470
+      md5: 5b521fc2ba993b0d6081c8d9bdb2ac77
+      size: 8474
     outs:
     - path: data/cleaned/zomato_cleaned.csv
       hash: md5
@@ -44,3 +44,43 @@ stages:
       hash: md5
       md5: 9e75f43e6610bd5f8f5f4f9c35da5ff7
       size: 3861577
+  feature_selection:
+    cmd: python src/features/feature_selection.py
+    deps:
+    - path: data/cleaned/zomato_cleaned.csv
+      hash: md5
+      md5: 628b17d1a1e46bbd583a022a0d2d6e83
+      size: 8095173
+    - path: src/features/feature_selection.py
+      hash: md5
+      md5: 27ddc2dc28e81997eb862973f4c6ba14
+      size: 2302
+    outs:
+    - path: data/interim/food_delivery_interim.csv
+      hash: md5
+      md5: 9e75f43e6610bd5f8f5f4f9c35da5ff7
+      size: 3861577
+  data_splitting:
+    cmd: python src/features/data_splitting.py
+    deps:
+    - path: data/interim/food_delivery_interim.csv
+      hash: md5
+      md5: 9e75f43e6610bd5f8f5f4f9c35da5ff7
+      size: 3861577
+    - path: params.yaml
+      hash: md5
+      md5: 19416ea02ad8a6d4be9a17b7312d3430
+      size: 58
+    - path: src/features/data_splitting.py
+      hash: md5
+      md5: e98e3c5f964669d8f951976c9d50b277
+      size: 2355
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 22f712f7eddf6c6a521ff33a77a93460
+      size: 772086
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 05f17066e7d9f158fdf4bbcc3ad42449
+      size: 3089271

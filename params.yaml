@@ -1,0 +1,4 @@
+data_splitting:
+  test_size: 0.20
+  random_state: 42
+

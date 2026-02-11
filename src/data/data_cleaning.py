@@ -184,6 +184,7 @@ def clean_location_features(df, threshold=1.0):
     return df
 
 
+
 def add_haversine_distance(df):
     logger.info("Adding haversine distance feature")
 
@@ -208,6 +209,7 @@ def add_haversine_distance(df):
     df["haversine_distance_km"] = R * c
 
     return df
+
 
 
 def add_distance_bins(df):
