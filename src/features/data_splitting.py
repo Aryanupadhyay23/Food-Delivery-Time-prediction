@@ -35,7 +35,8 @@ def split_data(df: pd.DataFrame, test_size: float, random_state: int):
     train_df, test_df = train_test_split(
         df,
         test_size=test_size,
-        random_state=random_state
+        random_state=random_state,
+        shuffle=True
     )
 
     logger.info(
@@ -79,6 +80,7 @@ if __name__ == "__main__":
         test_size=params["test_size"],
         random_state=params["random_state"]
     )
+
 
     save_split_data(train_df, test_df, save_dir)
 

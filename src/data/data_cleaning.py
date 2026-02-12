@@ -215,6 +215,7 @@ def add_haversine_distance(df):
 def add_distance_bins(df):
     logger.info("Creating distance bins")
 
+
     df["distance_bin"] = pd.cut(
         df["haversine_distance_km"],
         bins=[0, 5, 10, 15, 25, np.inf],
@@ -223,6 +224,7 @@ def add_distance_bins(df):
     )
 
     return df
+
 
 
 def drop_unused_features(df):

@@ -24,3 +24,31 @@ stages:
     outs:
       - data/processed/train.csv
       - data/processed/test.csv
+
+  data_preprocessing:
+    cmd: python src/features/data_preprocessing.py
+    deps:
+      - src/features/data_preprocessing.py
+      - data/processed/train.csv
+    outs:
+      - artifacts/preprocessor.pkl
+
+  model_training:
+    cmd: python src/models/model_training.py
+    deps:
+      - src/models/model_training.py
+      - data/processed/train.csv
+      - artifacts/preprocessor.pkl
+    outs:
+      - models/stacking_cat_rf_pipeline.joblib  
+
+  model_evaluation:
+    cmd: python src/models/model_evaluation.py
+    deps:
+      - src/models/model_evaluation.py
+      - data/processed/test.csv
+      - artifacts/preprocessor.pkl
+      - models/stacking_cat_rf_pipeline.joblib  
+    metrics:
+      - reports/metrics.json:
+          cache: false
