@@ -2,3 +2,36 @@ data_splitting:
   test_size: 0.2
   random_state: 42
 
+model_training:
+
+  CatBoost_Regressor:
+    iterations: 1466
+    depth: 10
+    learning_rate: 0.038
+    l2_leaf_reg: 26.02
+    random_strength: 9.56
+    bagging_temperature: 0.73
+    random_seed: 42
+    verbose: 0
+    allow_writing_files: false
+
+  RandomForest_Regressor:
+    n_estimators: 290
+    max_depth: 14
+    min_samples_split: 7
+    min_samples_leaf: 1
+    max_features: null
+    bootstrap: true
+    random_state: 42
+    n_jobs: null
+
+  Stacking_Regressor:
+    cv: 5
+    n_jobs: -1
+    passthrough: false
+
+  Meta_Model:
+    max_depth: 6
+    min_samples_split: 7
+    min_samples_leaf: 8
+    random_state: 42

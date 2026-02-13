@@ -6,30 +6,28 @@ from sklearn.model_selection import train_test_split
 
 
 
-# ---------------- Logging -----------------
+# Logging 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-
-
-# ---------------- Load Params ----------------
+# Load Params
 def load_params(param_path: Path) -> dict:
     logger.info(f"Loading parameters from {param_path}")
     with open(param_path, "r") as file:
         params = yaml.safe_load(file)
     return params["data_splitting"]
 
-# ---------------- Load Data ----------------
+# Load Data 
 def load_data(data_path: Path) -> pd.DataFrame:
     logger.info(f"Loading data from {data_path}")
     df = pd.read_csv(data_path)
     logger.info(f"Loaded dataset shape: {df.shape}")
     return df
 
-# ---------------- Split Data ----------------
+# Split Data
 def split_data(df: pd.DataFrame, test_size: float, random_state: int):
 
     train_df, test_df = train_test_split(
@@ -47,7 +45,7 @@ def split_data(df: pd.DataFrame, test_size: float, random_state: int):
 
     return train_df, test_df
 
-# ---------------- Save Data ----------------
+# Save Data
 def save_split_data(train_df, test_df, save_dir: Path):
 
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -62,7 +60,7 @@ def save_split_data(train_df, test_df, save_dir: Path):
     logger.info(f"Test data saved at: {test_path}")
 
 
-# ---------------- Main ----------------
+# Main
 if __name__ == "__main__":
 
     root_path = Path(__file__).parent.parent.parent
