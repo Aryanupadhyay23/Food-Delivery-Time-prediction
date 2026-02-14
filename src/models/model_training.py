@@ -20,9 +20,9 @@ from sklearn.compose import TransformedTargetRegressor
 from sklearn.pipeline import Pipeline
 
 
-# ======================================================
+
 # Configuration
-# ======================================================
+
 
 TARGET = "time_taken"
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
@@ -38,9 +38,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ======================================================
+
 # Environment Setup
-# ======================================================
+
 
 def setup_environment():
     try:
@@ -56,9 +56,9 @@ def setup_environment():
         sys.exit(1)
 
 
-# ======================================================
+
 # Utilities
-# ======================================================
+
 
 def load_data(path: Path):
     try:
@@ -95,9 +95,9 @@ def get_git_commit():
         return "unknown"
 
 
-# ======================================================
+
 # Model Builder
-# ======================================================
+
 
 def build_model(params, preprocessor):
 
@@ -135,9 +135,9 @@ def build_model(params, preprocessor):
     return final_model, cat_params, rf_params, stack_params, meta_params
 
 
-# ======================================================
+
 # Main
-# ======================================================
+
 
 def main():
 
@@ -168,9 +168,9 @@ def main():
 
         client = MlflowClient()
 
-        # ======================================================
+       
         # Training
-        # ======================================================
+      
 
         with mlflow.start_run(run_name="model_training") as run:
 
@@ -209,9 +209,9 @@ def main():
             mlflow.log_param("registered_model_version", model_version)
             mlflow.set_tag("lifecycle_stage", "candidate")
 
-        # ======================================================
+     
         # Candidate Alias Assignment
-        # ======================================================
+   
 
         try:
             client.delete_registered_model_alias(

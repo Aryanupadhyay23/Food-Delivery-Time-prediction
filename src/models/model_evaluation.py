@@ -19,9 +19,9 @@ from scipy.stats import skew
 import dagshub
 
 
-# ======================================================
+
 # Configuration
-# ======================================================
+
 
 TARGET = "time_taken"
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
@@ -37,9 +37,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ======================================================
+
 # MLflow Setup
-# ======================================================
+
 
 def configure_mlflow():
     dagshub.init(
@@ -51,9 +51,9 @@ def configure_mlflow():
     logger.info("DagsHub and MLflow configured successfully.")
 
 
-# ======================================================
+
 # Utilities
-# ======================================================
+
 
 def load_data(path: Path):
     if not path.exists():
@@ -105,9 +105,9 @@ def compute_generalization_gap(train_metrics, test_metrics):
     return gap
 
 
-# ======================================================
+
 # Main
-# ======================================================
+
 
 def main():
 
@@ -125,9 +125,9 @@ def main():
 
         metrics_path = reports_dir / "metrics.json"
 
-        # ======================================================
+  
         # Load Candidate Model
-        # ======================================================
+
 
         try:
             model_version_obj = client.get_model_version_by_alias(
@@ -144,9 +144,9 @@ def main():
             f"models:/{REGISTERED_MODEL_NAME}@{CANDIDATE_ALIAS}"
         )
 
-        # ======================================================
+
         # Load Data
-        # ======================================================
+
 
         train_df = load_data(train_path)
         test_df = load_data(test_path)
@@ -154,16 +154,16 @@ def main():
         X_train, y_train = split_xy(train_df, TARGET)
         X_test, y_test = split_xy(test_df, TARGET)
 
-        # ======================================================
+ 
         # Predictions
-        # ======================================================
+
 
         y_train_pred = model.predict(X_train)
         y_test_pred = model.predict(X_test)
 
-        # ======================================================
+
         # Metrics
-        # ======================================================
+
 
         train_metrics = compute_metrics(y_train, y_train_pred, "train_")
         test_metrics = compute_metrics(y_test, y_test_pred, "test_")
@@ -183,9 +183,9 @@ def main():
 
         logger.info(f"Metrics saved at {metrics_path}")
 
-        # ======================================================
+
         # Log Evaluation Run
-        # ======================================================
+
 
         with mlflow.start_run(run_name=f"evaluation_v{version_number}"):
 

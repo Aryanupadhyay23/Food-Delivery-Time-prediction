@@ -14,16 +14,16 @@ import seaborn as sns
 import dagshub
 
 
-# ======================================================
+
 # Configuration
-# ======================================================
+
 
 TARGET = "time_taken"
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 CANDIDATE_ALIAS = "candidate"
 EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
 
-# Purely measurement threshold (NOT governance)
+# Purely measurement threshold
 EXTREME_ERROR_THRESHOLD = 15
 
 
@@ -35,9 +35,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# ======================================================
+
 # MLflow Setup
-# ======================================================
+
 
 def configure_mlflow():
     dagshub.init(
@@ -49,9 +49,9 @@ def configure_mlflow():
     logger.info("DagsHub and MLflow configured successfully.")
 
 
-# ======================================================
+
 # Utilities
-# ======================================================
+
 
 def load_data(path: Path):
     if not path.exists():
@@ -103,9 +103,9 @@ def test_latency(model, sample_input, iterations=500):
     return ((end - start) / iterations) * 1000
 
 
-# ======================================================
+
 # Main
-# ======================================================
+
 
 def main():
 
@@ -122,9 +122,9 @@ def main():
 
         diagnostics_metrics_path = reports_dir / "diagnostics_metrics.json"
 
-        # ======================================================
+
         # Load Candidate Model
-        # ======================================================
+
 
         try:
             model_version_obj = client.get_model_version_by_alias(
@@ -141,9 +141,9 @@ def main():
             f"models:/{REGISTERED_MODEL_NAME}@{CANDIDATE_ALIAS}"
         )
 
-        # ======================================================
+
         # Load Data
-        # ======================================================
+   
 
         df_test = load_data(test_path)
 
@@ -152,9 +152,9 @@ def main():
 
         y_pred = model.predict(X)
 
-        # ======================================================
+
         # Compute Diagnostics
-        # ======================================================
+  
 
         residual_plot_path = plot_residuals(y, y_pred, diagnostics_dir)
 
@@ -178,9 +178,9 @@ def main():
 
         logger.info(f"Diagnostics metrics saved at {diagnostics_metrics_path}")
 
-        # ======================================================
+  
         # Log to MLflow
-        # ======================================================
+  
 
         with mlflow.start_run(run_name=f"diagnostics_v{version_number}"):
 

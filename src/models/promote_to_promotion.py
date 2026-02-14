@@ -29,9 +29,9 @@ def main():
         configure_mlflow()
         client = MlflowClient()
 
-        # ======================================================
+
         # Verify staging alias exists
-        # ======================================================
+
 
         staging_obj = client.get_model_version_by_alias(
             REGISTERED_MODEL_NAME,
@@ -42,9 +42,8 @@ def main():
 
         logger.info(f"Staging version found: {version}")
 
-        # ======================================================
         # Archive current production (if exists)
-        # ======================================================
+
 
         try:
             current_prod = client.get_model_version_by_alias(
@@ -66,9 +65,9 @@ def main():
         except Exception:
             logger.info("No existing production version found.")
 
-        # ======================================================
+
         # Remove existing production alias
-        # ======================================================
+
 
         try:
             client.delete_registered_model_alias(
@@ -78,9 +77,9 @@ def main():
         except Exception:
             pass
 
-        # ======================================================
+     
         # Promote staging → production
-        # ======================================================
+     
 
         client.set_registered_model_alias(
             REGISTERED_MODEL_NAME,
