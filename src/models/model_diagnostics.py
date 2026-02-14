@@ -1,4 +1,4 @@
-import os
+import json
 import time
 import logging
 import sys
@@ -8,22 +8,22 @@ import pandas as pd
 import numpy as np
 import mlflow
 from mlflow.tracking import MlflowClient
-from mlflow.exceptions import MlflowException
-from dotenv import load_dotenv
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import dagshub
 
+
+# ======================================================
 # Configuration
+# ======================================================
 
 TARGET = "time_taken"
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
+CANDIDATE_ALIAS = "candidate"
+EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
 
-VALIDATED_ALIAS = "validated"
-PRODUCTION_ALIAS = "production"
-
-MAX_ALLOWED_LATENCY_MS = 50
-MAX_ALLOWED_EXTREME_ERRORS = 2
+# Purely measurement threshold (NOT governance)
 EXTREME_ERROR_THRESHOLD = 15
 
 
@@ -35,54 +35,51 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# MLflow Configuration
+# ======================================================
+# MLflow Setup
+# ======================================================
 
 def configure_mlflow():
-    # 1. Force load the .env file from the root
-    root_path = Path(__file__).parent.parent.parent
-    load_dotenv(dotenv_path=root_path / ".env")
-
-    # 2. Get the experiment name from environment
-    experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME")
-    
-    if not experiment_name:
-        raise EnvironmentError("MLFLOW_EXPERIMENT_NAME missing from .env")
-
-    # 3. Initialize DagsHub 
     dagshub.init(
-        repo_owner="Aryanupadhyay23", 
-        repo_name="Food-Delivery-Time-prediction", 
+        repo_owner="Aryanupadhyay23",
+        repo_name="Food-Delivery-Time-prediction",
         mlflow=True
     )
+    mlflow.set_experiment(EXPERIMENT_NAME)
+    logger.info("DagsHub and MLflow configured successfully.")
 
-    # 4. Set the experiment
-    mlflow.set_experiment(experiment_name)
 
-    logger.info("DagsHub and MLflow configured successfully via dagshub.init.")
+# ======================================================
+# Utilities
+# ======================================================
 
-# Utility 
-
-def load_data(path):
+def load_data(path: Path):
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
+    logger.info(f"Loading data from {path}")
     return pd.read_csv(path, engine="pyarrow")
 
 
-def plot_residuals(y_true, y_pred, save_dir):
+def plot_residuals(y_true, y_pred, save_dir: Path):
+
     residuals = y_true - y_pred
 
     plt.figure(figsize=(14, 6))
 
+    # Actual vs Predicted
     plt.subplot(1, 2, 1)
     sns.scatterplot(x=y_true, y=y_pred, alpha=0.3)
-    plt.plot([y_true.min(), y_true.max()],
-             [y_true.min(), y_true.max()],
-             'r--')
+    plt.plot(
+        [y_true.min(), y_true.max()],
+        [y_true.min(), y_true.max()],
+        "r--"
+    )
     plt.title("Actual vs Predicted")
 
+    # Residual Distribution
     plt.subplot(1, 2, 2)
     sns.histplot(residuals, kde=True, bins=30)
-    plt.axvline(x=0, color='r', linestyle='--')
+    plt.axvline(x=0, color="r", linestyle="--")
     plt.title("Residual Distribution")
 
     save_path = save_dir / "residual_analysis.png"
@@ -94,7 +91,9 @@ def plot_residuals(y_true, y_pred, save_dir):
 
 
 def test_latency(model, sample_input, iterations=500):
-    model.predict(sample_input)  
+
+    # Warm-up call
+    model.predict(sample_input)
 
     start = time.time()
     for _ in range(iterations):
@@ -104,122 +103,97 @@ def test_latency(model, sample_input, iterations=500):
     return ((end - start) / iterations) * 1000
 
 
+# ======================================================
 # Main
+# ======================================================
 
 def main():
+
     try:
         configure_mlflow()
         client = MlflowClient()
 
         root_path = Path(__file__).parent.parent.parent
         test_path = root_path / "data" / "processed" / "test.csv"
-        reports_dir = root_path / "reports" / "diagnostics"
-        reports_dir.mkdir(parents=True, exist_ok=True)
 
-        # Load validated model
+        reports_dir = root_path / "reports"
+        diagnostics_dir = reports_dir / "diagnostics"
+        diagnostics_dir.mkdir(parents=True, exist_ok=True)
+
+        diagnostics_metrics_path = reports_dir / "diagnostics_metrics.json"
+
+        # ======================================================
+        # Load Candidate Model
+        # ======================================================
 
         try:
-            model_version = client.get_model_version_by_alias(
+            model_version_obj = client.get_model_version_by_alias(
                 REGISTERED_MODEL_NAME,
-                VALIDATED_ALIAS
+                CANDIDATE_ALIAS
             )
         except Exception:
-            raise RuntimeError("No validated model found.")
+            raise RuntimeError("No candidate model found in registry.")
 
-        version_number = model_version.version
-
-        logger.info(f"Running diagnostics on validated version {version_number}")
+        version_number = model_version_obj.version
+        logger.info(f"Running diagnostics on candidate version {version_number}")
 
         model = mlflow.pyfunc.load_model(
-            f"models:/{REGISTERED_MODEL_NAME}@{VALIDATED_ALIAS}"
+            f"models:/{REGISTERED_MODEL_NAME}@{CANDIDATE_ALIAS}"
         )
 
+        # ======================================================
         # Load Data
+        # ======================================================
 
         df_test = load_data(test_path)
+
         X = df_test.drop(columns=[TARGET])
         y = df_test[TARGET]
 
         y_pred = model.predict(X)
 
-        # Diagnostics 
+        # ======================================================
+        # Compute Diagnostics
+        # ======================================================
 
-        residual_plot_path = plot_residuals(y, y_pred, reports_dir)
+        residual_plot_path = plot_residuals(y, y_pred, diagnostics_dir)
 
         sample_row = X.iloc[[0]]
         avg_latency = test_latency(model, sample_row)
 
         residuals = np.abs(y - y_pred)
-        num_extreme_errors = int(np.sum(residuals > EXTREME_ERROR_THRESHOLD))
+        num_extreme_errors = int(
+            np.sum(residuals > EXTREME_ERROR_THRESHOLD)
+        )
 
-        logger.info(f"Latency: {avg_latency:.2f} ms")
-        logger.info(f"Extreme errors: {num_extreme_errors}")
+        diagnostics_metrics = {
+            "model_version": version_number,
+            "avg_latency_ms": round(avg_latency, 4),
+            "extreme_error_count": num_extreme_errors,
+            "extreme_error_threshold": EXTREME_ERROR_THRESHOLD
+        }
 
-        # Log new diagnostics run 
+        with open(diagnostics_metrics_path, "w") as f:
+            json.dump(diagnostics_metrics, f, indent=4)
+
+        logger.info(f"Diagnostics metrics saved at {diagnostics_metrics_path}")
+
+        # ======================================================
+        # Log to MLflow
+        # ======================================================
 
         with mlflow.start_run(run_name=f"diagnostics_v{version_number}"):
 
             mlflow.log_metric("diagnostics_avg_latency_ms", avg_latency)
             mlflow.log_metric("diagnostics_extreme_error_count", num_extreme_errors)
+            mlflow.log_metric("diagnostics_extreme_error_threshold", EXTREME_ERROR_THRESHOLD)
+
             mlflow.log_artifact(residual_plot_path)
 
             mlflow.set_tag("diagnosed_model_version", version_number)
+            mlflow.set_tag("diagnosed_alias", CANDIDATE_ALIAS)
 
-        # Promotion Logic 
-
-        passed = (
-            avg_latency <= MAX_ALLOWED_LATENCY_MS and
-            num_extreme_errors <= MAX_ALLOWED_EXTREME_ERRORS
-        )
-
-        if passed:
-            logger.info("Diagnostics PASSED → Promoting to production")
-
-            try:
-                client.delete_registered_model_alias(
-                    REGISTERED_MODEL_NAME,
-                    PRODUCTION_ALIAS
-                )
-            except Exception:
-                pass
-
-            client.set_registered_model_alias(
-                REGISTERED_MODEL_NAME,
-                PRODUCTION_ALIAS,
-                version=str(version_number)
-            )
-
-            client.delete_registered_model_alias(
-                REGISTERED_MODEL_NAME,
-                VALIDATED_ALIAS
-            )
-
-            client.set_model_version_tag(
-                REGISTERED_MODEL_NAME,
-                str(version_number),
-                "lifecycle_stage",
-                "production"
-            )
-
-            logger.info("Model promoted to production.")
-
-        else:
-            logger.warning("Diagnostics FAILED.")
-
-            client.delete_registered_model_alias(
-                REGISTERED_MODEL_NAME,
-                VALIDATED_ALIAS
-            )
-
-            client.set_model_version_tag(
-                REGISTERED_MODEL_NAME,
-                str(version_number),
-                "lifecycle_stage",
-                "rejected_diagnostics"
-            )
-
-            logger.warning("Model marked as rejected_diagnostics.")
-            sys.exit(1)
+        logger.info("Diagnostics stage completed successfully.")
 
     except Exception as e:
         logger.exception(f"Diagnostics pipeline failed: {str(e)}")

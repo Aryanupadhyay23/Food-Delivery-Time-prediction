@@ -1,0 +1,6 @@
+{
+    "model_version": "4",
+    "avg_latency_ms": 32.3637,
+    "extreme_error_count": 1,
+    "extreme_error_threshold": 15
+}

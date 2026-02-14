@@ -37,8 +37,8 @@ stages:
       size: 3089271
     - path: src/features/data_preprocessing.py
       hash: md5
-      md5: 96946d70ad05bb0d0cc752be22d2423f
-      size: 3436
+      md5: 60a16d104e79865f643a4e92c7413906
+      size: 3219
     outs:
     - path: artifacts/preprocessor.pkl
       hash: md5
@@ -53,8 +53,8 @@ stages:
       size: 8095173
     - path: src/features/feature_selection.py
       hash: md5
-      md5: f05fa7b7486ffddabcb4234dae987840
-      size: 2304
+      md5: af92b8725f492734b85cc4b844ccd62a
+      size: 2280
     outs:
     - path: data/interim/food_delivery_interim.csv
       hash: md5
@@ -69,8 +69,8 @@ stages:
       size: 3861577
     - path: params.yaml
       hash: md5
-      md5: 39c41e31ae314c07ccbd985dc6886816
-      size: 704
+      md5: e165d65d50775310b2ac1855e484cb93
+      size: 1087
     - path: src/features/data_splitting.py
       hash: md5
       md5: 7761257a9ddea0098ba7922bb2f59245
@@ -97,16 +97,16 @@ stages:
       size: 3089271
     - path: params.yaml
       hash: md5
-      md5: 39c41e31ae314c07ccbd985dc6886816
-      size: 704
+      md5: e165d65d50775310b2ac1855e484cb93
+      size: 1087
     - path: src/models/model_training.py
       hash: md5
-      md5: 993e9184b88184133bb96c07ba036927
-      size: 7456
+      md5: f986e8e67848d7571b4e6c9d68ec84d0
+      size: 7642
     outs:
     - path: models/stacking_cat_rf_pipeline.joblib
       hash: md5
-      md5: e216943272e226c2dd5b9166dd2c4d36
+      md5: 833244ebba81c78ded95e475fa596ec8
       size: 120789726
   model_evaluation:
     cmd: python src/models/model_evaluation.py
@@ -121,21 +121,17 @@ stages:
       size: 3089271
     - path: models/stacking_cat_rf_pipeline.joblib
       hash: md5
-      md5: e216943272e226c2dd5b9166dd2c4d36
+      md5: 833244ebba81c78ded95e475fa596ec8
       size: 120789726
-    - path: params.yaml
-      hash: md5
-      md5: 39c41e31ae314c07ccbd985dc6886816
-      size: 704
     - path: src/models/model_evaluation.py
       hash: md5
-      md5: 13791ecdb62a8f26d94c9bafcccc4df3
-      size: 7382
+      md5: 4fe3862fa14b3d282d7d11f1f433c702
+      size: 6617
     outs:
     - path: reports/metrics.json
       hash: md5
-      md5: 7f9a3e0cbfc34dc51c9d366f49ee3cc8
-      size: 974
+      md5: 4a1f54f76ecc2beff409d0a021f39562
+      size: 1001
   model_diagnostics:
     cmd: python src/models/model_diagnostics.py
     deps:
@@ -145,19 +141,19 @@ stages:
       size: 772086
     - path: models/stacking_cat_rf_pipeline.joblib
       hash: md5
-      md5: e216943272e226c2dd5b9166dd2c4d36
+      md5: 833244ebba81c78ded95e475fa596ec8
       size: 120789726
-    - path: params.yaml
-      hash: md5
-      md5: 39c41e31ae314c07ccbd985dc6886816
-      size: 704
     - path: src/models/model_diagnostics.py
       hash: md5
-      md5: 46951a19e9e53ab53138ea10a3798464
-      size: 6433
+      md5: d76864b16822afa2eb2c17f31b45ac2c
+      size: 6035
     outs:
     - path: reports/diagnostics
       hash: md5
       md5: 4c8a8e9410fa170b7f28cd28af693579.dir
       size: 109480
       nfiles: 1
+    - path: reports/diagnostics_metrics.json
+      hash: md5
+      md5: 7686f176c9d4284498273943285f1526
+      size: 129

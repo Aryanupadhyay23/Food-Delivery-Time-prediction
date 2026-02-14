@@ -8,6 +8,7 @@ stages:
     outs:
       - data/cleaned/zomato_cleaned.csv
 
+
   feature_selection:
     cmd: python src/features/feature_selection.py
     deps:
@@ -15,6 +16,7 @@ stages:
       - data/cleaned/zomato_cleaned.csv
     outs:
       - data/interim/food_delivery_interim.csv
+
 
   data_splitting:
     cmd: python src/features/data_splitting.py
@@ -26,6 +28,7 @@ stages:
       - data/processed/train.csv
       - data/processed/test.csv
 
+
   data_preprocessing:
     cmd: python src/features/data_preprocessing.py
     deps:
@@ -33,6 +36,7 @@ stages:
       - data/processed/train.csv
     outs:
       - artifacts/preprocessor.pkl
+
 
   model_training:
     cmd: python src/models/model_training.py
@@ -44,6 +48,7 @@ stages:
     outs:
       - models/stacking_cat_rf_pipeline.joblib
 
+
   model_evaluation:
     cmd: python src/models/model_evaluation.py
     deps:
@@ -51,10 +56,10 @@ stages:
       - data/processed/train.csv
       - data/processed/test.csv
       - models/stacking_cat_rf_pipeline.joblib
-      - params.yaml
     metrics:
       - reports/metrics.json:
           cache: false
+
 
   model_diagnostics:
     cmd: python src/models/model_diagnostics.py
@@ -62,6 +67,9 @@ stages:
       - src/models/model_diagnostics.py
       - data/processed/test.csv
       - models/stacking_cat_rf_pipeline.joblib
-      - params.yaml
+    metrics:
+      - reports/diagnostics_metrics.json:
+          cache: false
     outs:
       - reports/diagnostics
+

@@ -1,16 +1,15 @@
 import logging
 import sys
 import subprocess
-import os
 from pathlib import Path
-import dagshub 
+
+import dagshub
 import pandas as pd
 import joblib
 import yaml
 import mlflow
 import mlflow.sklearn
 from mlflow.tracking import MlflowClient
-from dotenv import load_dotenv
 from mlflow.exceptions import MlflowException
 
 from catboost import CatBoostRegressor
@@ -21,17 +20,15 @@ from sklearn.compose import TransformedTargetRegressor
 from sklearn.pipeline import Pipeline
 
 
+# ======================================================
 # Configuration
+# ======================================================
 
 TARGET = "time_taken"
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 CANDIDATE_ALIAS = "candidate"
 EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
 
-MLFLOW_TRACKING_URI = (
-    "https://dagshub.com/Aryanupadhyay23/"
-    "Food-Delivery-Time-prediction.mlflow"
-)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -41,14 +38,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# ======================================================
 # Environment Setup
+# ======================================================
+
 def setup_environment():
     try:
-        load_dotenv()
-        dagshub.init(repo_owner='Aryanupadhyay23', 
-                     repo_name='Food-Delivery-Time-prediction', 
-                     mlflow=True)
-        
+        dagshub.init(
+            repo_owner="Aryanupadhyay23",
+            repo_name="Food-Delivery-Time-prediction",
+            mlflow=True
+        )
         mlflow.set_experiment(EXPERIMENT_NAME)
         logger.info("DagsHub MLflow configured successfully.")
     except Exception as e:
@@ -56,7 +56,9 @@ def setup_environment():
         sys.exit(1)
 
 
+# ======================================================
 # Utilities
+# ======================================================
 
 def load_data(path: Path):
     try:
@@ -93,50 +95,49 @@ def get_git_commit():
         return "unknown"
 
 
+# ======================================================
 # Model Builder
+# ======================================================
 
 def build_model(params, preprocessor):
 
-    try:
-        cat_params = params["model_training"]["CatBoost_Regressor"]
-        rf_params = params["model_training"]["RandomForest_Regressor"]
-        stack_params = params["model_training"]["Stacking_Regressor"]
-        meta_params = params["model_training"]["Meta_Model"]
+    cat_params = params["model_training"]["CatBoost_Regressor"]
+    rf_params = params["model_training"]["RandomForest_Regressor"]
+    stack_params = params["model_training"]["Stacking_Regressor"]
+    meta_params = params["model_training"]["Meta_Model"]
 
-        cat_model = CatBoostRegressor(**cat_params)
-        rf_model = RandomForestRegressor(**rf_params)
-        meta_model = DecisionTreeRegressor(**meta_params)
+    cat_model = CatBoostRegressor(**cat_params)
+    rf_model = RandomForestRegressor(**rf_params)
+    meta_model = DecisionTreeRegressor(**meta_params)
 
-        stacking_regressor = StackingRegressor(
-            estimators=[
-                ("catboost", cat_model),
-                ("random_forest", rf_model)
-            ],
-            final_estimator=meta_model,
-            cv=stack_params["cv"],
-            n_jobs=stack_params["n_jobs"],
-            passthrough=stack_params["passthrough"]
-        )
+    stacking_regressor = StackingRegressor(
+        estimators=[
+            ("catboost", cat_model),
+            ("random_forest", rf_model)
+        ],
+        final_estimator=meta_model,
+        cv=stack_params["cv"],
+        n_jobs=stack_params["n_jobs"],
+        passthrough=stack_params["passthrough"]
+    )
 
-        model_pipeline = Pipeline([
-            ("preprocessor", preprocessor),
-            ("regressor", stacking_regressor)
-        ])
+    model_pipeline = Pipeline([
+        ("preprocessor", preprocessor),
+        ("regressor", stacking_regressor)
+    ])
 
-        final_model = TransformedTargetRegressor(
-            regressor=model_pipeline,
-            transformer=PowerTransformer(),
-            check_inverse=False
-        )
+    final_model = TransformedTargetRegressor(
+        regressor=model_pipeline,
+        transformer=PowerTransformer(),
+        check_inverse=False
+    )
 
-        return final_model, cat_params, rf_params, stack_params, meta_params
-
-    except Exception:
-        logger.exception("Model building failed.")
-        sys.exit(1)
+    return final_model, cat_params, rf_params, stack_params, meta_params
 
 
-# Main 
+# ======================================================
+# Main
+# ======================================================
 
 def main():
 
@@ -167,11 +168,14 @@ def main():
 
         client = MlflowClient()
 
+        # ======================================================
         # Training
+        # ======================================================
 
-        with mlflow.start_run() as run:
+        with mlflow.start_run(run_name="model_training") as run:
 
             logger.info("Logging hyperparameters...")
+
             mlflow.log_params(clean_and_prefix(cat_params, "cat"))
             mlflow.log_params(clean_and_prefix(rf_params, "rf"))
             mlflow.log_params(clean_and_prefix(stack_params, "stack"))
@@ -186,25 +190,28 @@ def main():
             logger.info("Training completed.")
 
             model_save_dir.mkdir(parents=True, exist_ok=True)
-            joblib.dump(final_model,
-                        model_save_dir / "stacking_cat_rf_pipeline.joblib")
+            joblib.dump(
+                final_model,
+                model_save_dir / "stacking_cat_rf_pipeline.joblib"
+            )
 
             logger.info("Registering model in MLflow...")
-            mlflow.sklearn.log_model(
+
+            model_info = mlflow.sklearn.log_model(
                 sk_model=final_model,
                 name="model",
                 registered_model_name=REGISTERED_MODEL_NAME
             )
 
+            model_version = model_info.registered_model_version
             run_id = run.info.run_id
 
-        # Candidate Governance
+            mlflow.log_param("registered_model_version", model_version)
+            mlflow.set_tag("lifecycle_stage", "candidate")
 
-        versions = client.search_model_versions(
-            f"name='{REGISTERED_MODEL_NAME}'"
-        )
-
-        latest_version = max(int(v.version) for v in versions)
+        # ======================================================
+        # Candidate Alias Assignment
+        # ======================================================
 
         try:
             client.delete_registered_model_alias(
@@ -217,24 +224,17 @@ def main():
         client.set_registered_model_alias(
             REGISTERED_MODEL_NAME,
             CANDIDATE_ALIAS,
-            version=str(latest_version)
+            version=str(model_version)
         )
 
         client.set_model_version_tag(
             REGISTERED_MODEL_NAME,
-            str(latest_version),
-            "lifecycle_stage",
-            "candidate"
-        )
-
-        client.set_model_version_tag(
-            REGISTERED_MODEL_NAME,
-            str(latest_version),
+            str(model_version),
             "training_run_id",
             run_id
         )
 
-        logger.info("Model successfully marked as candidate.")
+        logger.info(f"Model version {model_version} marked as candidate.")
         logger.info("Training pipeline completed successfully.")
 
     except MlflowException:
