@@ -12,7 +12,7 @@ from mlflow.exceptions import MlflowException
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import dagshub
 
 # Configuration
 
@@ -38,34 +38,27 @@ logger = logging.getLogger(__name__)
 # MLflow Configuration
 
 def configure_mlflow():
+    # 1. Force load the .env file from the root
     root_path = Path(__file__).parent.parent.parent
-    dotenv_path = root_path / ".env"
+    load_dotenv(dotenv_path=root_path / ".env")
 
-    if not dotenv_path.exists():
-        raise FileNotFoundError(".env file not found in project root.")
-
-    load_dotenv(dotenv_path)
-
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    # 2. Get the experiment name from environment
     experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME")
-    username = os.getenv("MLFLOW_TRACKING_USERNAME")
-    password = os.getenv("MLFLOW_TRACKING_PASSWORD")
-
-    if not tracking_uri:
-        raise EnvironmentError("MLFLOW_TRACKING_URI missing.")
+    
     if not experiment_name:
-        raise EnvironmentError("MLFLOW_EXPERIMENT_NAME missing.")
-    if not username or not password:
-        raise EnvironmentError("MLFLOW credentials missing.")
+        raise EnvironmentError("MLFLOW_EXPERIMENT_NAME missing from .env")
 
-    os.environ["MLFLOW_TRACKING_USERNAME"] = username
-    os.environ["MLFLOW_TRACKING_PASSWORD"] = password
+    # 3. Initialize DagsHub 
+    dagshub.init(
+        repo_owner="Aryanupadhyay23", 
+        repo_name="Food-Delivery-Time-prediction", 
+        mlflow=True
+    )
 
-    mlflow.set_tracking_uri(tracking_uri)
+    # 4. Set the experiment
     mlflow.set_experiment(experiment_name)
 
-    logger.info("MLflow configured successfully.")
-
+    logger.info("DagsHub and MLflow configured successfully via dagshub.init.")
 
 # Utility 
 

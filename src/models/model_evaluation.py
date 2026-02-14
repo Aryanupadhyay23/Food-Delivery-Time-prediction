@@ -19,7 +19,7 @@ from sklearn.metrics import (
     mean_absolute_percentage_error
 )
 from scipy.stats import skew
-
+import dagshub
 
 # Configuration
 
@@ -44,20 +44,28 @@ logger = logging.getLogger(__name__)
 # Utility
 
 def configure_mlflow():
-    load_dotenv()
+    # 1. Load variables from .env to get the experiment name
+    root_path = Path(__file__).parent.parent.parent
+    load_dotenv(dotenv_path=root_path / ".env")
 
-    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    repo_owner = "Aryanupadhyay23"
+    repo_name = "Food-Delivery-Time-prediction"
     experiment_name = os.getenv("MLFLOW_EXPERIMENT_NAME")
 
-    if not tracking_uri:
-        raise EnvironmentError("MLFLOW_TRACKING_URI not found in environment.")
     if not experiment_name:
         raise EnvironmentError("MLFLOW_EXPERIMENT_NAME not found in environment.")
 
-    mlflow.set_tracking_uri(tracking_uri)
+    # 2. Initialize DagsHub
+    dagshub.init(
+        repo_owner=repo_owner, 
+        repo_name=repo_name, 
+        mlflow=True
+    )
+
+    # 3. Set the experiment
     mlflow.set_experiment(experiment_name)
 
-    logger.info("MLflow configured successfully.")
+    logger.info("DagsHub and MLflow configured successfully via dagshub.init.")
 
 
 def load_data(path: Path):

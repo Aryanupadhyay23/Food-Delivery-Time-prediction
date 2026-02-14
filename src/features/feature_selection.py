@@ -11,16 +11,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-
 def drop_missing_values(df: pd.DataFrame) -> pd.DataFrame:
     """Drop rows with missing values."""
     initial_shape = df.shape
     df = df.dropna()
     logger.info(f"Dropped missing values: {initial_shape} → {df.shape}")
     return df
-
-
 
 def drop_unused_features(df: pd.DataFrame) -> pd.DataFrame:
     """Remove irrelevant or leakage-prone features."""
@@ -43,14 +39,10 @@ def drop_unused_features(df: pd.DataFrame) -> pd.DataFrame:
     logger.info(f"Dropped unused columns: {columns_to_drop}")
     return df
 
-
-
 def load_data(data_path: Path) -> pd.DataFrame:
     """Load dataset from disk."""
     logger.info(f"Loading data from {data_path}")
     return pd.read_csv(data_path)
-
-
 
 def preprocess_data(data: pd.DataFrame, saved_data_path: Path) -> None:
     """Run preprocessing pipeline and save output."""
@@ -66,10 +58,6 @@ def preprocess_data(data: pd.DataFrame, saved_data_path: Path) -> None:
     cleaned_df.to_csv(saved_data_path, index=False)
     logger.info(f"Preprocessed data saved to {saved_data_path}")
     logger.info(f"Final dataset shape: {cleaned_df.shape}")
-
-
-
-
 
 if __name__ == "__main__":
 

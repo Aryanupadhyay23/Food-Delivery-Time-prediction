@@ -11,10 +11,10 @@ from sklearn.preprocessing import (
 )
 from sklearn import set_config
 
-# Ensure sklearn returns pandas DataFrames
+
 set_config(transform_output="pandas")
 
-# ---------------- Logging ----------------
+# Logging 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
@@ -23,14 +23,14 @@ logger = logging.getLogger(__name__)
 
 TARGET_COLUMN = "time_taken"
 
-# ---------------- Load Data ----------------
+# Load Data
 def load_data(data_path: Path) -> pd.DataFrame:
     logger.info(f"Loading data from {data_path}")
     df = pd.read_csv(data_path)
     logger.info(f"Loaded dataset shape: {df.shape}")
     return df
 
-# ---------------- Build Preprocessor ----------------
+# Build Preprocessor 
 def build_preprocessor() -> ColumnTransformer:
 
     num_cols = ["rider_age", "rider_ratings", "distance"]
@@ -44,10 +44,6 @@ def build_preprocessor() -> ColumnTransformer:
         "day_name",
         "time_of_day"
     ]
-
-
-
-
 
     ordinal_cat_cols = ["traffic_density"]
 
@@ -86,7 +82,7 @@ def build_preprocessor() -> ColumnTransformer:
 
     return preprocessor
 
-# ---------------- Transformation Stage ----------------
+# Transformation Stage
 def fit_and_save_preprocessor(
     train_df: pd.DataFrame,
     artifact_dir: Path
@@ -118,7 +114,7 @@ def fit_and_save_preprocessor(
 
 
 
-# ---------------- Main ----------------
+# Main 
 if __name__ == "__main__":
 
     root_path = Path(__file__).parent.parent.parent

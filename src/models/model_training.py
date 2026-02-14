@@ -3,7 +3,7 @@ import sys
 import subprocess
 import os
 from pathlib import Path
-
+import dagshub 
 import pandas as pd
 import joblib
 import yaml
@@ -42,21 +42,17 @@ logger = logging.getLogger(__name__)
 
 
 # Environment Setup
-
 def setup_environment():
     try:
         load_dotenv()
-
-        if not os.getenv("MLFLOW_TRACKING_USERNAME") or not os.getenv("MLFLOW_TRACKING_PASSWORD"):
-            raise EnvironmentError("MLflow credentials missing in .env")
-
-        mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+        dagshub.init(repo_owner='Aryanupadhyay23', 
+                     repo_name='Food-Delivery-Time-prediction', 
+                     mlflow=True)
+        
         mlflow.set_experiment(EXPERIMENT_NAME)
-
-        logger.info("Environment and MLflow configured successfully.")
-
+        logger.info("DagsHub MLflow configured successfully.")
     except Exception as e:
-        logger.exception("Failed during environment setup.")
+        logger.error(f"DagsHub init failed: {e}")
         sys.exit(1)
 
 
