@@ -8,23 +8,19 @@ import pandas as pd
 import numpy as np
 import mlflow
 from mlflow.tracking import MlflowClient
+import yaml
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 import dagshub
 
 
-
 # Configuration
-
 
 TARGET = "time_taken"
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 CANDIDATE_ALIAS = "candidate"
 EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
-
-# Purely measurement threshold
-EXTREME_ERROR_THRESHOLD = 15
 
 
 logging.basicConfig(
@@ -34,10 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-
 # MLflow Setup
-
 
 def configure_mlflow():
     dagshub.init(
@@ -48,16 +41,25 @@ def configure_mlflow():
     mlflow.set_experiment(EXPERIMENT_NAME)
     logger.info("DagsHub and MLflow configured successfully.")
 
-
-
 # Utilities
-
 
 def load_data(path: Path):
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
     logger.info(f"Loading data from {path}")
     return pd.read_csv(path, engine="pyarrow")
+
+
+def load_extreme_error_threshold(params_path: Path) -> float:
+    with open(params_path, "r") as f:
+        params = yaml.safe_load(f)
+
+    return (
+        params["promotion_policy"]
+        ["staging_thresholds"]
+        ["diagnostics"]
+        ["extreme_error_threshold"]
+    )
 
 
 def plot_residuals(y_true, y_pred, save_dir: Path):
@@ -102,10 +104,7 @@ def test_latency(model, sample_input, iterations=500):
 
     return ((end - start) / iterations) * 1000
 
-
-
 # Main
-
 
 def main():
 
@@ -115,6 +114,7 @@ def main():
 
         root_path = Path(__file__).parent.parent.parent
         test_path = root_path / "data" / "processed" / "test.csv"
+        params_path = root_path / "params.yaml"
 
         reports_dir = root_path / "reports"
         diagnostics_dir = reports_dir / "diagnostics"
@@ -122,9 +122,12 @@ def main():
 
         diagnostics_metrics_path = reports_dir / "diagnostics_metrics.json"
 
+        # Load threshold dynamically
+        EXTREME_ERROR_THRESHOLD = load_extreme_error_threshold(params_path)
+
+        logger.info(f"Extreme error threshold loaded from YAML: {EXTREME_ERROR_THRESHOLD}")
 
         # Load Candidate Model
-
 
         try:
             model_version_obj = client.get_model_version_by_alias(
@@ -141,10 +144,8 @@ def main():
             f"models:/{REGISTERED_MODEL_NAME}@{CANDIDATE_ALIAS}"
         )
 
-
         # Load Data
    
-
         df_test = load_data(test_path)
 
         X = df_test.drop(columns=[TARGET])
@@ -152,10 +153,8 @@ def main():
 
         y_pred = model.predict(X)
 
-
         # Compute Diagnostics
-  
-
+    
         residual_plot_path = plot_residuals(y, y_pred, diagnostics_dir)
 
         sample_row = X.iloc[[0]]
@@ -178,9 +177,7 @@ def main():
 
         logger.info(f"Diagnostics metrics saved at {diagnostics_metrics_path}")
 
-  
-        # Log to MLflow
-  
+        # Log to MLflow       
 
         with mlflow.start_run(run_name=f"diagnostics_v{version_number}"):
 

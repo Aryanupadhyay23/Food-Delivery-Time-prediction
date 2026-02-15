@@ -52,8 +52,3 @@ promotion_policy:
       max_avg_latency_ms: 50
       max_extreme_errors: 2
       extreme_error_threshold: 15
-
-  production_policy:
-
-    require_manual_approval: true
-    allow_auto_promotion: false

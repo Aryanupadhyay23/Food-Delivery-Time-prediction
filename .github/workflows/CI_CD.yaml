@@ -1,0 +1,123 @@
+name: Food Delivery Production Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: food_delivery_time_prediction
+  ECR_REGISTRY: 125840290869.dkr.ecr.us-east-1.amazonaws.com
+  DAGSHUB_REPO_OWNER: Aryanupadhyay23
+  DAGSHUB_REPO_NAME: Food-Delivery-Time-prediction
+
+permissions:
+  contents: read
+
+jobs:
+  
+  # CI JOB
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dev Dependencies
+        run: |
+          set -e
+          python -m pip install --upgrade pip
+          pip install -r dev-requirements.txt
+
+      - name: Lint (Critical Failures Only)
+        run: |
+          set -e
+          flake8 src inference_app --select=E9,F63,F7,F82 --show-source --statistics
+
+      # ----------- Configure AWS for DVC S3 -----------
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: DVC Pull (Restore Model + Preprocessor)
+        run: |
+          set -e
+          dvc pull
+      - name: Promote Model to Staging
+        env:
+          MLFLOW_TRACKING_URI: https://dagshub.com/${{ env.DAGSHUB_REPO_OWNER }}/${{ env.DAGSHUB_REPO_NAME }}.mlflow
+          MLFLOW_TRACKING_USERNAME: ${{ env.DAGSHUB_REPO_OWNER }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          set -e
+          python src/models/promote_to_staging.py
+
+      - name: Promote Model to Production
+        env:
+          MLFLOW_TRACKING_URI: https://dagshub.com/${{ env.DAGSHUB_REPO_OWNER }}/${{ env.DAGSHUB_REPO_NAME }}.mlflow
+          MLFLOW_TRACKING_USERNAME: ${{ env.DAGSHUB_REPO_OWNER }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          set -e
+          python src/models/promote_to_production.py
+
+  # CD JOB
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          set -e
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} \
+                     $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+      - name: Run Container Integration Test
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          set -e
+          docker run -d --name test_container \
+            -p 8000:8000 \
+            -e DAGSHUB_TOKEN=$DAGSHUB_TOKEN \
+            $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+
+          sleep 15
+          curl --fail http://localhost:8000/health
+
+          docker stop test_container
+          docker rm test_container
+
+      - name: Push Image to ECR
+        run: |
+          set -e
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
