@@ -1,9 +1,9 @@
+import os
 import json
 import sys
 import logging
 from pathlib import Path
 
-import dagshub
 import mlflow
 import yaml
 from mlflow.tracking import MlflowClient
@@ -12,20 +12,30 @@ from mlflow.tracking import MlflowClient
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 CANDIDATE_ALIAS = "candidate"
 STAGING_ALIAS = "staging"
-EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
+
+DAGSHUB_USERNAME = "aryanupadhyay23"
+TRACKING_URI = "https://dagshub.com/aryanupadhyay23/Food-Delivery-Time-prediction.mlflow"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# MLflow Configuration 
 
 def configure_mlflow():
-    dagshub.init(
-        repo_owner="Aryanupadhyay23",
-        repo_name="Food-Delivery-Time-prediction",
-        mlflow=True
-    )
-    mlflow.set_experiment(EXPERIMENT_NAME)
+    token = os.environ.get("DAGSHUB_TOKEN")
 
+    if not token:
+        raise RuntimeError("DAGSHUB_TOKEN environment variable not set.")
+
+    # Set MLflow credentials
+    os.environ["MLFLOW_TRACKING_USERNAME"] = DAGSHUB_USERNAME
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+
+    mlflow.set_tracking_uri(TRACKING_URI)
+
+    logger.info("Connected to DagsHub MLflow using token authentication.")
+
+# Utilities
 
 def load_json(path: Path):
     if not path.exists():
@@ -35,9 +45,12 @@ def load_json(path: Path):
 
 
 def load_params(path: Path):
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found.")
     with open(path, "r") as f:
         return yaml.safe_load(f)
 
+# Main Logic
 
 def main():
 
@@ -58,7 +71,8 @@ def main():
 
         version = str(metrics["model_version"])
 
-        # Apply thresholds
+        # Apply Governance Thresholds
+       
         if metrics["test_R2"] < perf["min_test_r2"]:
             logger.error("R2 threshold failed.")
             sys.exit(1)
@@ -77,7 +91,8 @@ def main():
 
         logger.info("All staging thresholds passed.")
 
-        # Verify candidate alias matches
+        # Verify Candidate Alias
+
         candidate_obj = client.get_model_version_by_alias(
             REGISTERED_MODEL_NAME,
             CANDIDATE_ALIAS
@@ -87,7 +102,8 @@ def main():
             logger.error("Candidate alias mismatch.")
             sys.exit(1)
 
-        # Remove existing staging alias
+        # Promote to Staging        
+
         try:
             client.delete_registered_model_alias(
                 REGISTERED_MODEL_NAME,
@@ -96,20 +112,18 @@ def main():
         except Exception:
             pass
 
-        # Assign staging alias
         client.set_registered_model_alias(
             REGISTERED_MODEL_NAME,
             STAGING_ALIAS,
             version=version
         )
 
-        # Remove candidate alias (CLEAN TRANSITION)
+        # Remove candidate alias (clean transition)
         client.delete_registered_model_alias(
             REGISTERED_MODEL_NAME,
             CANDIDATE_ALIAS
         )
 
-        # Update lifecycle tag
         client.set_model_version_tag(
             REGISTERED_MODEL_NAME,
             version,
