@@ -3,7 +3,7 @@ name: Food Delivery Production Pipeline
 on:
   push:
     branches:
-      - main
+      - master
 
 env:
   AWS_REGION: us-east-1
@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 jobs:
-  
+
   # CI JOB
   ci:
     runs-on: ubuntu-latest
