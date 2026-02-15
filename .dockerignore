@@ -1,0 +1,10 @@
+data/
+artifacts/
+models/
+reports/
+notebooks/
+.dvc/
+.github/
+__pycache__/
+.venv/
+.env

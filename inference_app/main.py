@@ -1,22 +1,25 @@
 import os
 import logging
-from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 import pandas as pd
-
 import mlflow
-import dagshub
-from dotenv import load_dotenv
 
-from inference_app.utility_files.inference_transformer import FoodDeliveryFeatureEngine
+from inference_app.utility_files.inference_transformer import (
+    FoodDeliveryFeatureEngine
+)
 
-
-# CONFIGURATION
+# Configuration
 
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 PRODUCTION_ALIAS = "production"
+
+# Fixed values inside script
+DAGSHUB_USERNAME = "Aryanupadhyay23"
+MLFLOW_TRACKING_URI = (
+    "https://dagshub.com/Aryanupadhyay23/Food-Delivery-Time-prediction.mlflow"
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -26,30 +29,24 @@ app = FastAPI(title="Food Delivery Time Prediction API")
 model_pipeline = None
 feature_engine = FoodDeliveryFeatureEngine()
 
-
-
-# MLFLOW + DAGSHUB SETUP
+# MLflow Setup
 
 def configure_mlflow():
 
-    # Explicit experiment name
-    experiment_name = "FoodDeliveryTimePipeline"
+    dagshub_token = os.environ.get("DAGSHUB_TOKEN")
 
-    # Initialize DagsHub MLflow tracking
-    dagshub.init(
-        repo_owner="Aryanupadhyay23",
-        repo_name="Food-Delivery-Time-prediction",
-        mlflow=True
-    )
+    if not dagshub_token:
+        raise RuntimeError("DAGSHUB_TOKEN environment variable not set.")
 
-    # Set experiment directly
-    mlflow.set_experiment(experiment_name)
+    # Set MLflow auth variables internally
+    os.environ["MLFLOW_TRACKING_USERNAME"] = DAGSHUB_USERNAME
+    os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
 
-    logger.info("MLflow connected via DagsHub using explicit experiment name.")
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
 
+    logger.info("MLflow configured successfully using DAGSHUB_TOKEN.")
 
-
-# LOAD PRODUCTION MODEL FROM REGISTRY
+# Load Production Model
 
 def load_production_model():
     global model_pipeline
@@ -66,19 +63,33 @@ def load_production_model():
         logger.exception("CRITICAL ERROR: Could not load production model.")
         raise e
 
-
-
-# STARTUP EVENT
+# Startup Event
 
 @app.on_event("startup")
 def startup_event():
     configure_mlflow()
     load_production_model()
 
+# Health Endpoint
 
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "model_loaded": model_pipeline is not None
+    }
 
-# PYDANTIC SCHEMA
+# Model Info Endpoint
 
+@app.get("/model-info")
+def model_info():
+    return {
+        "registered_model": REGISTERED_MODEL_NAME,
+        "alias": PRODUCTION_ALIAS,
+        "model_loaded": model_pipeline is not None
+    }
+
+# Input Schema
 class DeliveryInput(BaseModel):
 
     ID: str = Field(..., min_length=1)
@@ -110,9 +121,7 @@ class DeliveryInput(BaseModel):
             raise ValueError("Rider must be older than 18.")
         return v
 
-
-
-# PREDICTION ENDPOINT
+# Prediction Endpoint
 
 @app.post("/predict")
 def predict_delivery_time(data: DeliveryInput):
@@ -121,13 +130,8 @@ def predict_delivery_time(data: DeliveryInput):
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     try:
-        # 1. Convert validated input to DataFrame
         raw_df = pd.DataFrame([data.model_dump()])
-
-        # 2. Feature Engineering
         clean_df = feature_engine.transform(raw_df)
-
-        # 3. Predict from MLflow model
         prediction = model_pipeline.predict(clean_df)
 
         return {
