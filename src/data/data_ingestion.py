@@ -37,5 +37,6 @@ def download_dataset_from_s3():
         logger.error(e)
         raise e
 
+
 if __name__ == "__main__":
     download_dataset_from_s3()
