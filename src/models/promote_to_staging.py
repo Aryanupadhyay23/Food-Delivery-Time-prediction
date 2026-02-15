@@ -58,7 +58,7 @@ def main():
         configure_mlflow()
         client = MlflowClient()
 
-        root_path = Path(__file__).parent.parent
+        root_path = Path(__file__).resolve().parents[2]
 
         params = load_params(root_path / "params.yaml")
         metrics = load_json(root_path / "reports" / "metrics.json")

@@ -5,14 +5,13 @@ import mlflow
 from mlflow.tracking import MlflowClient
 
 
-# ======================================================
-# Configuration (Hardcoded Safe Values)
-# ======================================================
-
+# Hardcoded configuration values
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 STAGING_ALIAS = "staging"
 PRODUCTION_ALIAS = "production"
+EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
 
+# DagsHub MLflow configuration
 DAGSHUB_USERNAME = "aryanupadhyay23"
 TRACKING_URI = "https://dagshub.com/aryanupadhyay23/Food-Delivery-Time-prediction.mlflow"
 
@@ -20,38 +19,36 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# ======================================================
-# MLflow Configuration (Token-Based)
-# ======================================================
-
 def configure_mlflow():
+    # Read token from environment
     token = os.environ.get("DAGSHUB_TOKEN")
 
+    # Fail if token missing
     if not token:
         raise RuntimeError("DAGSHUB_TOKEN environment variable not set.")
 
+    # Set MLflow authentication credentials
     os.environ["MLFLOW_TRACKING_USERNAME"] = DAGSHUB_USERNAME
     os.environ["MLFLOW_TRACKING_PASSWORD"] = token
 
+    # Set MLflow tracking server
     mlflow.set_tracking_uri(TRACKING_URI)
+
+    # Explicitly set experiment
+    mlflow.set_experiment(EXPERIMENT_NAME)
 
     logger.info("Connected to DagsHub MLflow using token authentication.")
 
 
-# ======================================================
-# Main Promotion Logic
-# ======================================================
-
 def main():
-
     try:
+        # Configure MLflow connection
         configure_mlflow()
+
+        # Create MLflow client
         client = MlflowClient()
 
-        # ======================================================
-        # Verify Staging Alias Exists
-        # ======================================================
-
+        # Fetch staging model version
         staging_obj = client.get_model_version_by_alias(
             REGISTERED_MODEL_NAME,
             STAGING_ALIAS
@@ -60,10 +57,7 @@ def main():
         version = str(staging_obj.version)
         logger.info(f"Staging version found: {version}")
 
-        # ======================================================
-        # Archive Current Production (If Exists)
-        # ======================================================
-
+        # Archive existing production model if present
         try:
             current_prod = client.get_model_version_by_alias(
                 REGISTERED_MODEL_NAME,
@@ -84,10 +78,7 @@ def main():
         except Exception:
             logger.info("No existing production version found.")
 
-        # ======================================================
-        # Remove Existing Production Alias
-        # ======================================================
-
+        # Remove current production alias
         try:
             client.delete_registered_model_alias(
                 REGISTERED_MODEL_NAME,
@@ -96,17 +87,14 @@ def main():
         except Exception:
             pass
 
-        # ======================================================
-        # Promote Staging → Production
-        # ======================================================
-
+        # Assign production alias to staging version
         client.set_registered_model_alias(
             REGISTERED_MODEL_NAME,
             PRODUCTION_ALIAS,
             version=version
         )
 
-        # Remove staging alias (clean transition)
+        # Remove staging alias after promotion
         try:
             client.delete_registered_model_alias(
                 REGISTERED_MODEL_NAME,
@@ -115,7 +103,7 @@ def main():
         except Exception:
             pass
 
-        # Update lifecycle tag
+        # Update lifecycle tag to production
         client.set_model_version_tag(
             REGISTERED_MODEL_NAME,
             version,
