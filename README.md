@@ -201,12 +201,3 @@ Reassign the production alias to a previous model version in MLflow. No code cha
 * Alias-driven model lifecycle management
 * Health-validated production deployment
 * Infrastructure lifecycle control using ASG
-
----
-
-## Author
-
-Aryan Upadhyay
-Machine Learning and MLOps Engineer
-
-If you found this project useful, consider giving it a star.
