@@ -92,3 +92,4 @@ data/**
 .mypy_cache/
 /artifacts/
 /models/
+pr.txt
