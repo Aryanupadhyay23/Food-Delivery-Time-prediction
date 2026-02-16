@@ -64,3 +64,4 @@ echo "Fetching container logs for debugging..."
 docker logs $CONTAINER_NAME
 
 exit 1
+
