@@ -154,6 +154,6 @@ jobs:
             --application-name food-delivery-time-prediction-app \
             --deployment-config-name CodeDeployDefault.OneAtATime \
             --deployment-group-name food-delivery-time-prediction-group \
-            --s3-location bucket=deliverytimepredictiondeployment,key=deployment.zip,bundleType=zip \
+            --s3-location bucket=fooddeliverytimepredictiondeployment,key=deployment.zip,bundleType=zip \
             --file-exists-behavior OVERWRITE \
             --region us-east-1
