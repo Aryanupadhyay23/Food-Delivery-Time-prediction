@@ -37,6 +37,7 @@ echo "Starting new container..."
 
 docker run -d \
   --name $CONTAINER_NAME \
+  --restart always \
   -p ${HOST_PORT}:${CONTAINER_PORT} \
   -e DAGSHUB_TOKEN=16851a314ba5c13f8adb30964e6d87b7c4497394 \
   $ECR_REGISTRY/$IMAGE_NAME:latest
