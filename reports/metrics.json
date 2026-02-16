@@ -1,5 +1,5 @@
 {
-    "model_version": "2",
+    "model_version": "1",
     "train_MAE": 2.4985,
     "train_RMSE": 3.1091,
     "train_R2": 0.8891,
