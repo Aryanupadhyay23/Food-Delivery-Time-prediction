@@ -1,33 +1,22 @@
 stages:
 
-  data_cleaning:
-    cmd: python src/data/data_cleaning.py
+  data_preparation:
+    cmd: python src/data/data_preparation.py
     deps:
-      - src/data/data_cleaning.py
+      - src/data/data_preparation.py
       - data/raw/Zomato-Dataset.csv
     outs:
-      - data/cleaned/zomato_cleaned.csv
-
-
-  feature_selection:
-    cmd: python src/features/feature_selection.py
-    deps:
-      - src/features/feature_selection.py
-      - data/cleaned/zomato_cleaned.csv
-    outs:
-      - data/interim/food_delivery_interim.csv
-
+      - data/processed/food_delivery_prepared.csv
 
   data_splitting:
     cmd: python src/features/data_splitting.py
     deps:
       - src/features/data_splitting.py
-      - data/interim/food_delivery_interim.csv
+      - data/processed/food_delivery_prepared.csv
       - params.yaml
     outs:
       - data/processed/train.csv
       - data/processed/test.csv
-
 
   data_preprocessing:
     cmd: python src/features/data_preprocessing.py
@@ -36,7 +25,6 @@ stages:
       - data/processed/train.csv
     outs:
       - artifacts/preprocessor.pkl
-
 
   model_training:
     cmd: python src/models/model_training.py
@@ -47,7 +35,6 @@ stages:
       - params.yaml
     outs:
       - models/stacking_cat_rf_pipeline.joblib
-
 
   model_evaluation:
     cmd: python src/models/model_evaluation.py
@@ -60,7 +47,6 @@ stages:
       - reports/metrics.json:
           cache: false
 
-
   model_diagnostics:
     cmd: python src/models/model_diagnostics.py
     deps:
@@ -72,4 +58,3 @@ stages:
           cache: false
     outs:
       - reports/diagnostics
-

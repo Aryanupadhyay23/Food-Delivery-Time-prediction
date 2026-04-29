@@ -6,16 +6,13 @@ from pydantic import BaseModel, Field, field_validator
 import pandas as pd
 import mlflow
 
-from inference_app.utility_files.inference_transformer import (
-    FoodDeliveryFeatureEngine
-)
+from inference_app.utility_files.inference_transformer import prepare_inference_input
 
 # Configuration
 
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 PRODUCTION_ALIAS = "production"
 
-# Fixed values inside script
 DAGSHUB_USERNAME = "Aryanupadhyay23"
 MLFLOW_TRACKING_URI = (
     "https://dagshub.com/Aryanupadhyay23/Food-Delivery-Time-prediction.mlflow"
@@ -27,24 +24,22 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Food Delivery Time Prediction API")
 
 model_pipeline = None
-feature_engine = FoodDeliveryFeatureEngine()
+
 
 # MLflow Setup
 
 def configure_mlflow():
-
     dagshub_token = os.environ.get("DAGSHUB_TOKEN")
 
     if not dagshub_token:
         raise RuntimeError("DAGSHUB_TOKEN environment variable not set.")
 
-    # Set MLflow auth variables internally
     os.environ["MLFLOW_TRACKING_USERNAME"] = DAGSHUB_USERNAME
     os.environ["MLFLOW_TRACKING_PASSWORD"] = dagshub_token
 
     mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
     logger.info("MLflow configured successfully using DAGSHUB_TOKEN.")
+
 
 # Load Production Model
 
@@ -53,15 +48,14 @@ def load_production_model():
 
     try:
         logger.info("Loading production model from MLflow Registry...")
-
         model_uri = f"models:/{REGISTERED_MODEL_NAME}@{PRODUCTION_ALIAS}"
         model_pipeline = mlflow.pyfunc.load_model(model_uri)
-
         logger.info("Production model loaded successfully.")
 
     except Exception as e:
         logger.exception("CRITICAL ERROR: Could not load production model.")
         raise e
+
 
 # Startup Event
 
@@ -69,6 +63,7 @@ def load_production_model():
 def startup_event():
     configure_mlflow()
     load_production_model()
+
 
 # Health Endpoint
 
@@ -78,6 +73,7 @@ def health_check():
         "status": "healthy",
         "model_loaded": model_pipeline is not None
     }
+
 
 # Model Info Endpoint
 
@@ -89,7 +85,9 @@ def model_info():
         "model_loaded": model_pipeline is not None
     }
 
+
 # Input Schema
+
 class DeliveryInput(BaseModel):
 
     ID: str = Field(..., min_length=1)
@@ -121,6 +119,7 @@ class DeliveryInput(BaseModel):
             raise ValueError("Rider must be older than 18.")
         return v
 
+
 # Prediction Endpoint
 
 @app.post("/predict")
@@ -131,7 +130,7 @@ def predict_delivery_time(data: DeliveryInput):
 
     try:
         raw_df = pd.DataFrame([data.model_dump()])
-        clean_df = feature_engine.transform(raw_df)
+        clean_df = prepare_inference_input(raw_df)
         prediction = model_pipeline.predict(clean_df)
 
         return {
