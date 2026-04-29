@@ -2,69 +2,115 @@ import os
 import sys
 import logging
 import mlflow
+
 from mlflow.tracking import MlflowClient
 
 
-# Hardcoded configuration values
-REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
-STAGING_ALIAS = "staging"
-PRODUCTION_ALIAS = "production"
-EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-# DagsHub MLflow configuration
-DAGSHUB_USERNAME = "aryanupadhyay23"
-TRACKING_URI = "https://dagshub.com/aryanupadhyay23/Food-Delivery-Time-prediction.mlflow"
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
+
+STAGING_ALIAS = "staging"
+PRODUCTION_ALIAS = "production"
+
+EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
+
+DAGSHUB_USERNAME = "aryanupadhyay23"
+
+TRACKING_URI = (
+    "https://dagshub.com/"
+    "aryanupadhyay23/"
+    "Food-Delivery-Time-prediction.mlflow"
+)
+
+
 def configure_mlflow():
-    # Read token from environment
+
+    logger.info("Configuring MLflow connection")
+
     token = os.environ.get("DAGSHUB_TOKEN")
 
-    # Fail if token missing
     if not token:
-        raise RuntimeError("DAGSHUB_TOKEN environment variable not set.")
+        logger.error("DAGSHUB_TOKEN not found in environment")
+        raise RuntimeError(
+            "DAGSHUB_TOKEN environment variable not set"
+        )
 
-    # Set MLflow authentication credentials
-    os.environ["MLFLOW_TRACKING_USERNAME"] = DAGSHUB_USERNAME
-    os.environ["MLFLOW_TRACKING_PASSWORD"] = token
+    try:
+        os.environ[
+            "MLFLOW_TRACKING_USERNAME"
+        ] = DAGSHUB_USERNAME
 
-    # Set MLflow tracking server
-    mlflow.set_tracking_uri(TRACKING_URI)
+        os.environ[
+            "MLFLOW_TRACKING_PASSWORD"
+        ] = token
 
-    # Explicitly set experiment
-    mlflow.set_experiment(EXPERIMENT_NAME)
+        mlflow.set_tracking_uri(
+            TRACKING_URI
+        )
 
-    logger.info("Connected to DagsHub MLflow using token authentication.")
+        mlflow.set_experiment(
+            EXPERIMENT_NAME
+        )
+
+        logger.info(
+            "Connected to DagsHub MLflow successfully"
+        )
+
+    except Exception:
+        logger.exception(
+            "Failed to configure MLflow"
+        )
+        raise
 
 
 def main():
+
     try:
-        # Configure MLflow connection
         configure_mlflow()
 
-        # Create MLflow client
         client = MlflowClient()
 
-        # Fetch staging model version
-        staging_obj = client.get_model_version_by_alias(
-            REGISTERED_MODEL_NAME,
-            STAGING_ALIAS
+        logger.info(
+            "Fetching staging model alias"
         )
 
-        version = str(staging_obj.version)
-        logger.info(f"Staging version found: {version}")
-
-        # Archive existing production model if present
-        try:
-            current_prod = client.get_model_version_by_alias(
+        staging_obj = (
+            client.get_model_version_by_alias(
                 REGISTERED_MODEL_NAME,
-                PRODUCTION_ALIAS
+                STAGING_ALIAS
+            )
+        )
+
+        version = str(
+            staging_obj.version
+        )
+
+        logger.info(
+            f"Staging version detected: {version}"
+        )
+
+        try:
+            logger.info(
+                "Checking existing production model"
             )
 
-            old_version = str(current_prod.version)
+            prod_obj = (
+                client.get_model_version_by_alias(
+                    REGISTERED_MODEL_NAME,
+                    PRODUCTION_ALIAS
+                )
+            )
+
+            old_version = str(
+                prod_obj.version
+            )
 
             client.set_model_version_tag(
                 REGISTERED_MODEL_NAME,
@@ -73,37 +119,55 @@ def main():
                 "archived"
             )
 
-            logger.info(f"Archived previous production version {old_version}")
+            logger.info(
+                f"Archived production version {old_version}"
+            )
 
         except Exception:
-            logger.info("No existing production version found.")
+            logger.warning(
+                "No previous production version found"
+            )
 
-        # Remove current production alias
         try:
             client.delete_registered_model_alias(
                 REGISTERED_MODEL_NAME,
                 PRODUCTION_ALIAS
             )
-        except Exception:
-            pass
 
-        # Assign production alias to staging version
+            logger.debug(
+                "Old production alias removed"
+            )
+
+        except Exception:
+            logger.debug(
+                "No production alias to remove"
+            )
+
+        logger.info(
+            f"Promoting version {version} to production"
+        )
+
         client.set_registered_model_alias(
             REGISTERED_MODEL_NAME,
             PRODUCTION_ALIAS,
             version=version
         )
 
-        # Remove staging alias after promotion
         try:
             client.delete_registered_model_alias(
                 REGISTERED_MODEL_NAME,
                 STAGING_ALIAS
             )
-        except Exception:
-            pass
 
-        # Update lifecycle tag to production
+            logger.debug(
+                "Staging alias removed"
+            )
+
+        except Exception:
+            logger.debug(
+                "No staging alias to remove"
+            )
+
         client.set_model_version_tag(
             REGISTERED_MODEL_NAME,
             version,
@@ -111,10 +175,14 @@ def main():
             "production"
         )
 
-        logger.info(f"Model version {version} promoted to PRODUCTION cleanly.")
+        logger.info(
+            f"Version {version} promoted to PRODUCTION successfully"
+        )
 
-    except Exception as e:
-        logger.exception(str(e))
+    except Exception:
+        logger.exception(
+            "Production promotion failed"
+        )
         sys.exit(1)
 
 

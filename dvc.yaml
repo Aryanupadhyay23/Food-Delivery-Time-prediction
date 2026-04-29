@@ -1,18 +1,18 @@
 stages:
 
-  data_preparation:
-    cmd: python src/data/data_preparation.py
+  data_cleaning:
+    cmd: python src/data/data_cleaning.py
     deps:
-      - src/data/data_preparation.py
+      - src/data/data_cleaning.py
       - data/raw/Zomato-Dataset.csv
     outs:
-      - data/processed/food_delivery_prepared.csv
+      - data/processed/food_delivery_cleaned.csv
 
   data_splitting:
     cmd: python src/features/data_splitting.py
     deps:
       - src/features/data_splitting.py
-      - data/processed/food_delivery_prepared.csv
+      - data/processed/food_delivery_cleaned.csv
       - params.yaml
     outs:
       - data/processed/train.csv
@@ -53,6 +53,7 @@ stages:
       - src/models/model_diagnostics.py
       - data/processed/test.csv
       - models/stacking_cat_rf_pipeline.joblib
+      - params.yaml
     metrics:
       - reports/diagnostics_metrics.json:
           cache: false

@@ -4,192 +4,247 @@ from pathlib import Path
 import logging
 
 
-
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 logger = logging.getLogger(__name__)
 
 
 def load_data(data_path: Path) -> pd.DataFrame:
-    logger.info(f"Loading data from {data_path}")
+
+    logger.info(f"Loading dataset from {data_path}")
+
     df = pd.read_csv(data_path)
-    logger.info(f"Data loaded with shape {df.shape}")
+
+    logger.info(f"Dataset loaded successfully with shape {df.shape}")
+
     return df
 
 
-def city_features(df):
-    logger.info("Creating city-related features")
+def city_features(df: pd.DataFrame) -> pd.DataFrame:
+
+    logger.info("Creating city based features")
 
     df["city_name"] = df["Delivery_person_ID"].str.split("RES").str[0]
 
     city_mapping = {
-        'DEH': 'dehradun', 'KOC': 'kochi', 'PUNE': 'pune',
-        'LUDH': 'ludhiana', 'KNP': 'kanpur', 'MUM': 'mumbai',
-        'MYS': 'mysore', 'HYD': 'hyderabad', 'KOL': 'kolkata',
-        'RANCHI': 'ranchi', 'COIMB': 'coimbatore', 'CHEN': 'chennai',
-        'JAP': 'jaipur', 'SUR': 'surat', 'BANG': 'bangalore',
-        'GOA': 'goa', 'AURG': 'aurangabad', 'AGR': 'agra',
-        'VAD': 'vadodara', 'ALH': 'prayagraj',
-        'BHP': 'bhopal', 'INDO': 'indore'
+        "DEH": "dehradun",
+        "KOC": "kochi",
+        "PUNE": "pune",
+        "LUDH": "ludhiana",
+        "KNP": "kanpur",
+        "MUM": "mumbai",
+        "MYS": "mysore",
+        "HYD": "hyderabad",
+        "KOL": "kolkata",
+        "RANCHI": "ranchi",
+        "COIMB": "coimbatore",
+        "CHEN": "chennai",
+        "JAP": "jaipur",
+        "SUR": "surat",
+        "BANG": "bangalore",
+        "GOA": "goa",
+        "AURG": "aurangabad",
+        "AGR": "agra",
+        "VAD": "vadodara",
+        "ALH": "prayagraj",
+        "BHP": "bhopal",
+        "INDO": "indore"
     }
 
     df["city_name"] = df["city_name"].replace(city_mapping)
     df["city_type"] = df["City"].str.lower()
 
+    logger.debug("City features created successfully")
+
     return df
 
 
-def age_feature(df):
-    logger.info("Filtering delivery persons with age >= 18")
+def age_feature(df: pd.DataFrame) -> pd.DataFrame:
+
+    logger.info("Validating rider age values")
+
+    initial_rows = len(df)
 
     df["Delivery_person_Age"] = pd.to_numeric(
-        df["Delivery_person_Age"], errors="coerce"
+        df["Delivery_person_Age"],
+        errors="coerce"
     )
 
-    return df[df["Delivery_person_Age"] >= 18]
+    df = df[df["Delivery_person_Age"] >= 18]
+
+    removed_rows = initial_rows - len(df)
+
+    logger.info(f"Removed {removed_rows} rows with invalid age")
+
+    return df
 
 
+def rating_feature(df: pd.DataFrame) -> pd.DataFrame:
 
-def rating_feature_cleaning(df):
-    logger.info("Filtering delivery persons with rating <= 5")
-    return df[df["Delivery_person_Ratings"] <= 5]
+    logger.info("Validating rider ratings")
+
+    initial_rows = len(df)
+
+    df = df[df["Delivery_person_Ratings"] <= 5]
+
+    removed_rows = initial_rows - len(df)
+
+    logger.info(f"Removed {removed_rows} rows with invalid ratings")
+
+    return df
 
 
-def decimal_to_hhmm(x):
-    if pd.isna(x) or str(x).strip() == "":
+def decimal_to_hhmm(value):
+
+    if pd.isna(value) or str(value).strip() == "":
         return np.nan
 
-    x = str(x).strip()
+    value = str(value).strip()
 
-    if ":" in x:
+    if ":" in value:
         try:
-            hour, minute = int(x.split(":")[0]), int(x.split(":")[1])
-            hour = hour % 24
-            return f"{hour:02d}:{minute:02d}"
-        except:
+            hour, minute = map(int, value.split(":"))
+            return f"{hour % 24:02d}:{minute:02d}"
+        except ValueError:
             return np.nan
 
     try:
-        frac = float(x)
-        total_minutes = round(frac * 24 * 60)
-        hours = (total_minutes // 60) % 24
-        minutes = total_minutes % 60
-        return f"{hours:02d}:{minutes:02d}"
-    except:
+        total_minutes = round(float(value) * 24 * 60)
+        hour = (total_minutes // 60) % 24
+        minute = total_minutes % 60
+
+        return f"{hour:02d}:{minute:02d}"
+
+    except ValueError:
         return np.nan
 
 
-def time_of_day(time):
-    if pd.isna(time):
+def time_of_day(value):
+
+    if pd.isna(value):
         return np.nan
 
-    t = pd.to_datetime(time, format="%H:%M", errors="coerce")
-    if pd.isna(t):
+    time_obj = pd.to_datetime(
+        value,
+        format="%H:%M",
+        errors="coerce"
+    )
+
+    if pd.isna(time_obj):
         return np.nan
 
-    hour = t.hour
+    hour = time_obj.hour
 
     if 5 <= hour < 8:
         return "early_morning"
-    elif 8 <= hour < 11:
+    if 8 <= hour < 11:
         return "breakfast"
-    elif 11 <= hour < 14:
+    if 11 <= hour < 14:
         return "lunch_peak"
-    elif 14 <= hour < 17:
+    if 14 <= hour < 17:
         return "afternoon"
-    elif 17 <= hour < 20:
+    if 17 <= hour < 20:
         return "evening_snacks"
-    elif 20 <= hour < 23:
+    if 20 <= hour < 23:
         return "dinner_peak"
-    else:
-        return "late_night"
+
+    return "late_night"
 
 
+def order_date_features(df: pd.DataFrame) -> pd.DataFrame:
 
-def order_date_features(df):
-    logger.info("Creating order date features")
+    logger.info("Creating date related features")
+
     df["Order_Date"] = pd.to_datetime(
         df["Order_Date"],
         dayfirst=True,
         errors="coerce"
     )
+
     df["order_day"] = df["Order_Date"].dt.day
     df["order_month"] = df["Order_Date"].dt.month
     df["day_name"] = df["Order_Date"].dt.day_name().str.lower()
     df["is_weekend"] = df["Order_Date"].dt.dayofweek.isin([5, 6]).astype(int)
+
+    logger.debug("Date features created")
+
     return df
 
-def cleaning_time_features(df):
-    logger.info("Creating time-based features")
 
-    # Convert raw time columns once
+def cleaning_time_features(df: pd.DataFrame) -> pd.DataFrame:
+
+    logger.info("Creating time related features")
+
     order_time = df["Time_Orderd"].apply(decimal_to_hhmm)
     pickup_time = df["Time_Order_picked"].apply(decimal_to_hhmm)
 
-    # Assign engineered columns
     df["order_time"] = order_time
     df["order_pickup_time"] = pickup_time
     df["time_of_day"] = order_time.apply(time_of_day)
 
-    # Convert to datetime for computation
     order_dt = pd.to_datetime(order_time, format="%H:%M", errors="coerce")
     pickup_dt = pd.to_datetime(pickup_time, format="%H:%M", errors="coerce")
 
-    # order hour (0–23)
     df["order_hour"] = order_dt.dt.hour
 
-    # Compute preparation time (handle midnight crossing)
     prep_minutes = (pickup_dt - order_dt).dt.total_seconds() / 60
     prep_minutes = prep_minutes.where(prep_minutes >= 0, prep_minutes + 1440)
 
     df["prep_time_minutes"] = prep_minutes
 
+    logger.debug("Time features created")
+
     return df
 
 
+def lowercase_features(df: pd.DataFrame) -> pd.DataFrame:
 
-def to_lower(df):
-    logger.info("Converting categorical columns to lowercase")
+    logger.info("Standardizing text columns")
 
-    cols = [
+    columns = [
         "Weather_conditions",
         "Road_traffic_density",
         "Type_of_order",
         "Festival"
     ]
 
-    for col in cols:
-        df[col] = df[col].str.lower()
+    for column in columns:
+        df[column] = df[column].str.lower()
 
     return df
 
 
-def clean_location_features(df, threshold=1.0):
-    logger.info("Cleaning latitude and longitude features")
+def clean_location_features(
+    df: pd.DataFrame,
+    threshold: float = 1.0
+) -> pd.DataFrame:
 
-    location_cols = [
+    logger.info("Cleaning coordinate columns")
+
+    columns = [
         "Restaurant_latitude",
         "Restaurant_longitude",
         "Delivery_location_latitude",
         "Delivery_location_longitude"
     ]
 
-    for col in location_cols:
-        df[col] = df[col].abs()
-        df.loc[df[col] < threshold, col] = np.nan
+    for column in columns:
+        df[column] = df[column].abs()
+        df.loc[df[column] < threshold, column] = np.nan
+
+    logger.debug("Coordinate cleaning completed")
 
     return df
 
 
+def add_haversine_distance(df: pd.DataFrame) -> pd.DataFrame:
 
-def add_haversine_distance(df):
-    logger.info("Adding haversine distance feature")
+    logger.info("Calculating delivery distance")
 
-    # Earth radius in kilometers
-    R = 6371.0
+    radius = 6371.0
 
     lat1 = np.radians(df["Restaurant_latitude"])
     lon1 = np.radians(df["Restaurant_longitude"])
@@ -201,50 +256,35 @@ def add_haversine_distance(df):
 
     a = (
         np.sin(dlat / 2) ** 2
-        + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+        + np.cos(lat1)
+        * np.cos(lat2)
+        * np.sin(dlon / 2) ** 2
     )
 
     c = 2 * np.arcsin(np.sqrt(a))
 
-    df["haversine_distance_km"] = R * c
+    df["haversine_distance_km"] = radius * c
+
+    logger.debug("Distance feature created")
 
     return df
 
 
+def drop_missing_values(df: pd.DataFrame) -> pd.DataFrame:
 
-def add_distance_bins(df):
-    logger.info("Creating distance bins")
+    logger.info("Dropping rows with missing values")
 
+    initial_shape = df.shape
 
-    df["distance_bin"] = pd.cut(
-        df["haversine_distance_km"],
-        bins=[0, 5, 10, 15, 25, np.inf],
-        labels=["short", "medium", "long", "very_long", "extreme"],
-        right=False
-    )
+    df = df.dropna()
+
+    logger.info(f"Dataset shape changed from {initial_shape} to {df.shape}")
 
     return df
 
 
+def rename_features(df: pd.DataFrame) -> pd.DataFrame:
 
-def drop_unused_features(df):
-    logger.info("Dropping unused columns")
-
-    cols_to_drop = [
-        "ID",
-        "rider_id",
-        "Time_Orderd",
-        "Time_Order_picked",
-        "City",
-        "order_time",
-        "order_pickup_time",
-        "prep_time_minutes"
-    ]
-
-    return df.drop(columns=cols_to_drop, errors="ignore")
-
-
-def rename_features(df):
     logger.info("Renaming columns")
 
     rename_map = {
@@ -262,52 +302,97 @@ def rename_features(df):
         "multiple_deliveries": "multiple_deliveries",
         "Festival": "festival",
         "Time_taken (min)": "time_taken",
-        "Delivery_person_ID":"rider_id",
-        "haversine_distance_km":"distance",
-        "Order_Date":"order_date"
+        "Delivery_person_ID": "rider_id",
+        "haversine_distance_km": "distance",
+        "Order_Date": "order_date"
     }
 
     return df.rename(columns=rename_map)
 
 
+def drop_unused_features(df: pd.DataFrame) -> pd.DataFrame:
 
-def cleaned_data(data: pd.DataFrame, saved_data_path: Path):
-    logger.info("Starting full data cleaning pipeline")
+    logger.info("Dropping unused columns")
 
-    cleaned_df = (
-        data
-        .pipe(city_features)
-        .pipe(age_feature)
-        .pipe(rating_feature_cleaning)
-        .pipe(order_date_features)
-        .pipe(cleaning_time_features)
-        .pipe(to_lower)
-        .pipe(clean_location_features)
-        .pipe(add_haversine_distance)
-        .pipe(add_distance_bins)
-        .pipe(drop_unused_features)
-        .pipe(rename_features)
-    )
+    columns = [
+        "ID",
+        "rider_id",
+        "restaurant_lat",
+        "restaurant_long",
+        "location_lat",
+        "location_long",
+        "Time_Orderd",
+        "Time_Order_picked",
+        "City",
+        "order_time",
+        "order_pickup_time",
+        "prep_time_minutes",
+        "order_date",
+        "order_hour",
+        "order_day",
+        "order_month",
+        "distance_bin",
+        "city_name",
+        "is_weekend"
+    ]
 
-    cleaned_df.to_csv(saved_data_path, index=False)
-    logger.info(f"Cleaned data saved at {saved_data_path}")
+    df = df.drop(columns=columns, errors="ignore")
+
+    logger.debug("Unused columns removed")
+
+    return df
+
+
+def clean_data(data: pd.DataFrame, save_path: Path):
+
+    logger.info("Starting data cleaning pipeline")
+
+    try:
+        final_df = (
+            data
+            .pipe(city_features)
+            .pipe(age_feature)
+            .pipe(rating_feature)
+            .pipe(order_date_features)
+            .pipe(cleaning_time_features)
+            .pipe(lowercase_features)
+            .pipe(clean_location_features)
+            .pipe(add_haversine_distance)
+            .pipe(drop_missing_values)
+            .pipe(rename_features)
+            .pipe(drop_unused_features)
+        )
+
+        save_path.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        final_df.to_csv(save_path, index=False)
+
+        logger.info(f"Cleaned dataset saved to {save_path}")
+        logger.info(f"Final dataset shape: {final_df.shape}")
+
+    except Exception:
+        logger.exception("Data cleaning pipeline failed")
+        raise
 
 
 if __name__ == "__main__":
-    logger.info("Data cleaning script started")
 
     root_path = Path(__file__).parent.parent.parent
 
-    cleaned_data_save_dir = root_path / "data" / "cleaned"
-    cleaned_data_save_dir.mkdir(exist_ok=True, parents=True)
+    raw_path = root_path / "data" / "raw" / "Zomato-Dataset.csv"
 
-    cleaned_data_filename = "zomato_cleaned.csv"
-    cleaned_data_save_path = cleaned_data_save_dir / cleaned_data_filename
+    save_path = (
+        root_path
+        / "data"
+        / "processed"
+        / "food_delivery_cleaned.csv"
+    )
 
-    data_load_path = root_path / "data" / "raw" / "Zomato-Dataset.csv"
+    df = load_data(raw_path)
 
-    df = load_data(data_load_path)
-    cleaned_data(data=df, saved_data_path=cleaned_data_save_path)
+    clean_data(df, save_path)
 
-    logger.info("Data cleaning pipeline completed successfully")
-
+    logger.info("Data cleaning stage completed successfully")

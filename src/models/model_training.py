@@ -9,193 +9,300 @@ import joblib
 import yaml
 import mlflow
 import mlflow.sklearn
+
 from mlflow.tracking import MlflowClient
 from mlflow.exceptions import MlflowException
 
 from catboost import CatBoostRegressor
 from sklearn.ensemble import RandomForestRegressor, StackingRegressor
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PowerTransformer
 from sklearn.compose import TransformedTargetRegressor
-from sklearn.pipeline import Pipeline
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 
-# Configuration
+logger = logging.getLogger(__name__)
 
 
 TARGET = "time_taken"
+
 REGISTERED_MODEL_NAME = "FoodDeliveryTimeModel"
 CANDIDATE_ALIAS = "candidate"
 EXPERIMENT_NAME = "FoodDeliveryTimePipeline"
 
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - [%(levelname)s] - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
-logger = logging.getLogger(__name__)
+def configure_environment():
 
-
-
-# Environment Setup
-
-
-def setup_environment():
     try:
         dagshub.init(
             repo_owner="Aryanupadhyay23",
             repo_name="Food-Delivery-Time-prediction",
             mlflow=True
         )
+
         mlflow.set_experiment(EXPERIMENT_NAME)
-        logger.info("DagsHub MLflow configured successfully.")
-    except Exception as e:
-        logger.error(f"DagsHub init failed: {e}")
-        sys.exit(1)
 
+        logger.info("MLflow environment configured successfully")
 
-
-# Utilities
-
-
-def load_data(path: Path):
-    try:
-        logger.info(f"Loading data from {path}")
-        return pd.read_csv(path, engine="pyarrow")
     except Exception:
-        logger.exception("Failed to load dataset.")
+        logger.exception("Failed to configure MLflow environment")
         sys.exit(1)
 
 
-def load_params(path: Path):
+def load_data(path: Path) -> pd.DataFrame:
+
+    logger.info(f"Loading dataset from {path}")
+
     try:
-        logger.info(f"Loading parameters from {path}")
-        with open(path, "r") as f:
-            return yaml.safe_load(f)
+        df = pd.read_csv(path, engine="pyarrow")
+
+        logger.info(f"Dataset loaded successfully with shape {df.shape}")
+
+        return df
+
     except Exception:
-        logger.exception("Failed to load params.yaml.")
-        sys.exit(1)
+        logger.exception("Failed to load dataset")
+        raise
 
 
-def clean_and_prefix(params_dict, prefix):
+def load_params(path: Path) -> dict:
+
+    logger.info(f"Loading parameters from {path}")
+
+    try:
+        with open(path, "r") as file:
+            params = yaml.safe_load(file)
+
+        logger.debug("Parameters loaded successfully")
+
+        return params
+
+    except Exception:
+        logger.exception("Failed to load parameters")
+        raise
+
+
+def load_preprocessor(path: Path):
+
+    logger.info(f"Loading preprocessor from {path}")
+
+    try:
+        preprocessor = joblib.load(path)
+
+        logger.info("Preprocessor loaded successfully")
+
+        return preprocessor
+
+    except Exception:
+        logger.exception("Failed to load preprocessor")
+        raise
+
+
+def clean_and_prefix(params_dict: dict, prefix: str) -> dict:
+
     return {
-        f"{prefix}_{k}": (str(v) if v is None else v)
+        f"{prefix}_{k}": (
+            str(v) if v is None else v
+        )
         for k, v in params_dict.items()
     }
 
 
 def get_git_commit():
+
     try:
-        return subprocess.check_output(
+        commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"]
         ).decode().strip()
+
+        logger.debug(f"Git commit detected: {commit}")
+
+        return commit
+
     except Exception:
+        logger.warning("Unable to fetch git commit hash")
         return "unknown"
 
 
+def build_model(params: dict, preprocessor):
 
-# Model Builder
+    logger.info("Building model pipeline")
 
+    try:
+        cat_params = params["model_training"]["CatBoost_Regressor"]
+        rf_params = params["model_training"]["RandomForest_Regressor"]
+        stack_params = params["model_training"]["Stacking_Regressor"]
+        meta_params = params["model_training"]["Meta_Model"]
 
-def build_model(params, preprocessor):
+        cat_model = CatBoostRegressor(**cat_params)
 
-    cat_params = params["model_training"]["CatBoost_Regressor"]
-    rf_params = params["model_training"]["RandomForest_Regressor"]
-    stack_params = params["model_training"]["Stacking_Regressor"]
-    meta_params = params["model_training"]["Meta_Model"]
+        rf_model = RandomForestRegressor(**rf_params)
 
-    cat_model = CatBoostRegressor(**cat_params)
-    rf_model = RandomForestRegressor(**rf_params)
-    meta_model = DecisionTreeRegressor(**meta_params)
+        meta_model = DecisionTreeRegressor(**meta_params)
 
-    stacking_regressor = StackingRegressor(
-        estimators=[
-            ("catboost", cat_model),
-            ("random_forest", rf_model)
-        ],
-        final_estimator=meta_model,
-        cv=stack_params["cv"],
-        n_jobs=stack_params["n_jobs"],
-        passthrough=stack_params["passthrough"]
-    )
+        stacking_model = StackingRegressor(
+            estimators=[
+                ("catboost", cat_model),
+                ("random_forest", rf_model)
+            ],
+            final_estimator=meta_model,
+            cv=stack_params["cv"],
+            n_jobs=stack_params["n_jobs"],
+            passthrough=stack_params["passthrough"]
+        )
 
-    model_pipeline = Pipeline([
-        ("preprocessor", preprocessor),
-        ("regressor", stacking_regressor)
-    ])
+        pipeline = Pipeline(
+            steps=[
+                ("preprocessor", preprocessor),
+                ("regressor", stacking_model)
+            ]
+        )
 
-    final_model = TransformedTargetRegressor(
-        regressor=model_pipeline,
-        transformer=PowerTransformer(),
-        check_inverse=False
-    )
+        final_model = TransformedTargetRegressor(
+            regressor=pipeline,
+            transformer=PowerTransformer(),
+            check_inverse=False
+        )
 
-    return final_model, cat_params, rf_params, stack_params, meta_params
+        logger.info("Model pipeline built successfully")
 
+        return (
+            final_model,
+            cat_params,
+            rf_params,
+            stack_params,
+            meta_params
+        )
 
-
-# Main
+    except Exception:
+        logger.exception("Failed to build model pipeline")
+        raise
 
 
 def main():
 
     try:
-        setup_environment()
+        configure_environment()
 
         root_path = Path(__file__).parent.parent.parent
 
-        train_path = root_path / "data" / "processed" / "train.csv"
-        preprocessor_path = root_path / "artifacts" / "preprocessor.pkl"
-        param_path = root_path / "params.yaml"
-        model_save_dir = root_path / "models"
+        train_path = (
+            root_path
+            / "data"
+            / "processed"
+            / "train.csv"
+        )
 
-        params = load_params(param_path)
+        preprocessor_path = (
+            root_path
+            / "artifacts"
+            / "preprocessor.pkl"
+        )
+
+        params_path = root_path / "params.yaml"
+
+        model_dir = root_path / "models"
+
+        params = load_params(params_path)
+
         train_df = load_data(train_path)
 
         if TARGET not in train_df.columns:
-            raise ValueError(f"{TARGET} column not found in dataset")
+            logger.error(
+                f"Target column '{TARGET}' not found"
+            )
+            raise ValueError(
+                f"{TARGET} column not found"
+            )
 
-        X = train_df.drop(columns=[TARGET])
-        y = train_df[TARGET]
+        X_train = train_df.drop(columns=[TARGET])
+        y_train = train_df[TARGET]
 
-        logger.info("Loading preprocessor...")
-        preprocessor = joblib.load(preprocessor_path)
+        logger.info(
+            f"Training data prepared with shape {X_train.shape}"
+        )
 
-        final_model, cat_params, rf_params, stack_params, meta_params = \
-            build_model(params, preprocessor)
+        preprocessor = load_preprocessor(preprocessor_path)
+
+        (
+            final_model,
+            cat_params,
+            rf_params,
+            stack_params,
+            meta_params
+        ) = build_model(params, preprocessor)
 
         client = MlflowClient()
 
-       
-        # Training
-      
+        with mlflow.start_run(
+            run_name="model_training"
+        ) as run:
 
-        with mlflow.start_run(run_name="model_training") as run:
+            logger.info("Logging training parameters")
 
-            logger.info("Logging hyperparameters...")
-
-            mlflow.log_params(clean_and_prefix(cat_params, "cat"))
-            mlflow.log_params(clean_and_prefix(rf_params, "rf"))
-            mlflow.log_params(clean_and_prefix(stack_params, "stack"))
-            mlflow.log_params(clean_and_prefix(meta_params, "meta"))
-
-            mlflow.log_param("dataset_rows", train_df.shape[0])
-            mlflow.log_param("dataset_columns", train_df.shape[1])
-            mlflow.log_param("git_commit", get_git_commit())
-
-            logger.info("Training model...")
-            final_model.fit(X, y)
-            logger.info("Training completed.")
-
-            model_save_dir.mkdir(parents=True, exist_ok=True)
-            joblib.dump(
-                final_model,
-                model_save_dir / "stacking_cat_rf_pipeline.joblib"
+            mlflow.log_params(
+                clean_and_prefix(cat_params, "cat")
             )
 
-            logger.info("Registering model in MLflow...")
+            mlflow.log_params(
+                clean_and_prefix(rf_params, "rf")
+            )
+
+            mlflow.log_params(
+                clean_and_prefix(stack_params, "stack")
+            )
+
+            mlflow.log_params(
+                clean_and_prefix(meta_params, "meta")
+            )
+
+            mlflow.log_param(
+                "dataset_rows",
+                train_df.shape[0]
+            )
+
+            mlflow.log_param(
+                "dataset_columns",
+                train_df.shape[1]
+            )
+
+            mlflow.log_param(
+                "git_commit",
+                get_git_commit()
+            )
+
+            logger.info("Starting model training")
+
+            final_model.fit(X_train, y_train)
+
+            logger.info("Model training completed")
+
+            model_dir.mkdir(
+                parents=True,
+                exist_ok=True
+            )
+
+            local_model_path = (
+                model_dir
+                / "stacking_cat_rf_pipeline.joblib"
+            )
+
+            joblib.dump(
+                final_model,
+                local_model_path
+            )
+
+            logger.info(
+                f"Model saved locally at {local_model_path}"
+            )
+
+            logger.info("Registering model in MLflow")
 
             model_info = mlflow.sklearn.log_model(
                 sk_model=final_model,
@@ -203,23 +310,36 @@ def main():
                 registered_model_name=REGISTERED_MODEL_NAME
             )
 
-            model_version = model_info.registered_model_version
+            model_version = (
+                model_info.registered_model_version
+            )
+
             run_id = run.info.run_id
 
-            mlflow.log_param("registered_model_version", model_version)
-            mlflow.set_tag("lifecycle_stage", "candidate")
+            mlflow.log_param(
+                "registered_model_version",
+                model_version
+            )
 
-     
-        # Candidate Alias Assignment
-   
+            mlflow.set_tag(
+                "lifecycle_stage",
+                "candidate"
+            )
 
         try:
             client.delete_registered_model_alias(
                 REGISTERED_MODEL_NAME,
                 CANDIDATE_ALIAS
             )
+
+            logger.debug(
+                "Existing candidate alias removed"
+            )
+
         except Exception:
-            pass
+            logger.debug(
+                "No previous candidate alias found"
+            )
 
         client.set_registered_model_alias(
             REGISTERED_MODEL_NAME,
@@ -234,15 +354,20 @@ def main():
             run_id
         )
 
-        logger.info(f"Model version {model_version} marked as candidate.")
-        logger.info("Training pipeline completed successfully.")
+        logger.info(
+            f"Model version {model_version} assigned as candidate"
+        )
+
+        logger.info(
+            "Model training stage completed successfully"
+        )
 
     except MlflowException:
-        logger.exception("MLflow operation failed.")
+        logger.exception("MLflow operation failed")
         sys.exit(1)
 
     except Exception:
-        logger.exception("Unexpected failure in training pipeline.")
+        logger.exception("Model training pipeline failed")
         sys.exit(1)
 
 

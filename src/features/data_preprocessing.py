@@ -14,28 +14,44 @@ from sklearn import set_config
 
 set_config(transform_output="pandas")
 
-# Logging 
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
 logger = logging.getLogger(__name__)
 
 TARGET_COLUMN = "time_taken"
 
-# Load Data
-def load_data(data_path: Path) -> pd.DataFrame:
-    logger.info(f"Loading data from {data_path}")
-    df = pd.read_csv(data_path)
-    logger.info(f"Loaded dataset shape: {df.shape}")
-    return df
 
-# Build Preprocessor 
+def load_data(data_path: Path) -> pd.DataFrame:
+
+    logger.info(f"Loading training dataset from {data_path}")
+
+    try:
+        df = pd.read_csv(data_path)
+
+        logger.info(f"Dataset loaded successfully with shape {df.shape}")
+
+        return df
+
+    except Exception:
+        logger.exception("Failed to load training dataset")
+        raise
+
+
 def build_preprocessor() -> ColumnTransformer:
 
-    num_cols = ["rider_age", "rider_ratings", "distance"]
+    logger.info("Building preprocessing pipeline")
 
-    nominal_cat_cols = [
+    numeric_features = [
+        "rider_age",
+        "rider_ratings",
+        "distance"
+    ]
+
+    nominal_features = [
         "weather",
         "order_type",
         "vehicle_type",
@@ -45,16 +61,27 @@ def build_preprocessor() -> ColumnTransformer:
         "time_of_day"
     ]
 
-    ordinal_cat_cols = ["traffic_density"]
+    ordinal_features = [
+        "traffic_density"
+    ]
 
-    traffic_order = ["low", "medium", "high", "jam"]
+    traffic_order = [
+        "low",
+        "medium",
+        "high",
+        "jam"
+    ]
+
+    logger.debug(f"Numeric features: {numeric_features}")
+    logger.debug(f"Nominal features: {nominal_features}")
+    logger.debug(f"Ordinal features: {ordinal_features}")
 
     preprocessor = ColumnTransformer(
         transformers=[
             (
                 "num",
                 StandardScaler(),
-                num_cols
+                numeric_features
             ),
             (
                 "nominal",
@@ -63,7 +90,7 @@ def build_preprocessor() -> ColumnTransformer:
                     drop="first",
                     sparse_output=False
                 ),
-                nominal_cat_cols
+                nominal_features
             ),
             (
                 "ordinal",
@@ -72,7 +99,7 @@ def build_preprocessor() -> ColumnTransformer:
                     handle_unknown="use_encoded_value",
                     unknown_value=-1
                 ),
-                ordinal_cat_cols
+                ordinal_features
             )
         ],
         remainder="passthrough",
@@ -80,51 +107,76 @@ def build_preprocessor() -> ColumnTransformer:
         n_jobs=-1
     )
 
+    logger.info("Preprocessing pipeline created successfully")
+
     return preprocessor
 
-# Transformation Stage
+
 def fit_and_save_preprocessor(
     train_df: pd.DataFrame,
     artifact_dir: Path
 ) -> None:
 
-    logger.info("Starting transformation stage")
+    logger.info("Starting data preprocessing stage")
 
-    # Separate features and target
-    X_train = train_df.drop(columns=[TARGET_COLUMN])
-    y_train = train_df[TARGET_COLUMN]
+    try:
+        X_train = train_df.drop(columns=[TARGET_COLUMN])
 
-    logger.info(f"Training feature shape: {X_train.shape}")
+        logger.info(f"Training feature matrix shape: {X_train.shape}")
 
-    # Build preprocessor
-    preprocessor = build_preprocessor()
+        preprocessor = build_preprocessor()
 
-    # Fit ONLY on training data (leakage-safe)
-    preprocessor.fit(X_train)
+        logger.info("Fitting preprocessor on training data")
 
-    logger.info("Preprocessor fitted successfully")
+        preprocessor.fit(X_train)
 
-    # Save artifact
-    artifact_dir.mkdir(parents=True, exist_ok=True)
-    preprocessor_path = artifact_dir / "preprocessor.pkl"
+        logger.info("Preprocessor fitted successfully")
 
-    joblib.dump(preprocessor, preprocessor_path)
+        artifact_dir.mkdir(
+            parents=True,
+            exist_ok=True
+        )
 
-    logger.info(f"Preprocessor saved at {preprocessor_path}")
+        save_path = artifact_dir / "preprocessor.pkl"
+
+        joblib.dump(preprocessor, save_path)
+
+        logger.info(f"Preprocessor saved at {save_path}")
+
+    except KeyError:
+        logger.exception(
+            f"Target column '{TARGET_COLUMN}' not found in dataset"
+        )
+        raise
+
+    except Exception:
+        logger.exception("Data preprocessing stage failed")
+        raise
 
 
-
-# Main 
 if __name__ == "__main__":
 
-    root_path = Path(__file__).parent.parent.parent
+    try:
+        root_path = Path(__file__).parent.parent.parent
 
-    train_path = root_path / "data" / "processed" / "train.csv"
-    artifact_dir = root_path / "artifacts"
+        train_path = (
+            root_path
+            / "data"
+            / "processed"
+            / "train.csv"
+        )
 
-    train_df = load_data(train_path)
+        artifact_dir = root_path / "artifacts"
 
-    fit_and_save_preprocessor(train_df, artifact_dir)
+        train_df = load_data(train_path)
 
+        fit_and_save_preprocessor(
+            train_df=train_df,
+            artifact_dir=artifact_dir
+        )
 
-    logger.info("Data transformation stage completed successfully")
+        logger.info("Data preprocessing stage completed successfully")
+
+    except Exception:
+        logger.exception("Pipeline execution failed")
+        raise

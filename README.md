@@ -1,8 +1,10 @@
 # Food Delivery Time Prediction – MLOps System
 
-This project is an end-to-end production-grade machine learning system for predicting food delivery time. It integrates model training, experiment tracking, containerized inference, CI/CD automation, and AWS-based deployment into a complete and scalable MLOps workflow.
+This project is a complete machine learning system built to predict food delivery time. It goes beyond model training and focuses on how machine learning solutions are developed, managed, deployed, and maintained in real production environments.
 
-The objective of this project is not just to train a high-performing model, but to design a deployable, maintainable, and version-controlled ML system that reflects real-world engineering practices.
+The project combines data processing, model training, experiment tracking, API deployment, CI/CD automation, and AWS infrastructure into one workflow.
+
+The main goal was to build a practical and reliable ML system that follows industry-style engineering practices.
 
 ---
 
@@ -10,51 +12,53 @@ The objective of this project is not just to train a high-performing model, but 
 
 The system includes:
 
-* Data cleaning and preprocessing
-* Feature engineering
-* Ensemble model training using a Stacking Regressor
-* MLflow experiment tracking and model registry (via DagsHub)
-* Alias-based model lifecycle management
-* Dockerized FastAPI inference service
-* CI/CD automation using GitHub Actions
-* Deployment to AWS EC2 using CodeDeploy
-* Instance lifecycle management using Auto Scaling Groups
+- Data cleaning and preprocessing  
+- Feature engineering  
+- Ensemble model training using a stacking model  
+- MLflow experiment tracking and model registry through DagsHub  
+- Model version management using aliases  
+- Dockerized FastAPI inference service  
+- Automated CI/CD pipeline with GitHub Actions  
+- Deployment on AWS EC2 using CodeDeploy  
+- Auto Scaling Group based instance management  
 
-This architecture mirrors how production ML systems are built and maintained in industry environments.
+This project is designed to reflect how machine learning systems are handled after model development.
 
 ---
 
 ## Model Architecture
 
-The final model is a **Stacking Regressor**.
+The final model uses a **Stacking Regressor**.
 
-Base models:
+### Base Models
 
-* CatBoost Regressor
-* Random Forest Regressor
+- CatBoost Regressor  
+- Random Forest Regressor  
 
-Meta model:
+### Final Meta Model
 
-* Tree-based regressor
+- Tree-based regressor  
 
-All models are logged and versioned in MLflow Model Registry.
+This combination helps improve prediction performance by combining strengths of multiple models.
 
-The inference service always loads the model using:
+All trained models are logged and versioned in MLflow.
 
+The live API always loads the current production model using:
+
+```python
 models:/FoodDeliveryTimeModel@production
+```
 
-This alias-based approach enables seamless model updates without modifying application code.
+This means model upgrades can happen without changing application code.
 
 ---
 
 ## Project Structure
 
-```
+```text
 .
 ├── data/
 │   ├── raw/
-│   ├── cleaned/
-│   ├── interim/
 │   └── processed/
 ├── artifacts/
 ├── models/
@@ -67,137 +71,146 @@ This alias-based approach enables seamless model updates without modifying appli
 ├── deploy/
 ├── appspec.yml
 ├── Dockerfile
+├── dvc.yaml
 ├── params.yaml
 └── requirements files
 ```
 
-The repository is organized to clearly separate data processing, model development, inference logic, and deployment configuration.
+The structure keeps training, deployment, and data pipeline components organized and easy to manage.
 
 ---
 
-## Training and Evaluation Pipeline
+## Training Pipeline
 
-The training workflow follows this sequence:
+The workflow follows these stages:
 
-Data Cleaning
-→ Feature Engineering
-→ Train/Test Split
-→ Preprocessing
-→ Model Training
-→ Model Evaluation
-→ Model Diagnostics
-→ Model Registration
+Data Cleaning  
+→ Train/Test Split  
+→ Data Preprocessing  
+→ Model Training  
+→ Model Evaluation  
+→ Model Diagnostics  
+→ Model Registration  
 
-All experiments, metrics, and artifacts are tracked in MLflow.
+Each stage is tracked and reproducible using DVC.
+
+MLflow stores:
+
+* Parameters
+* Metrics
+* Model versions
+* Artifacts
 
 ---
 
 ## Model Promotion Workflow
 
-Models move through structured stages:
+Every trained model moves through clear lifecycle stages:
 
-Candidate
-→ Staging
-→ Production
+Candidate  
+→ Staging  
+→ Production  
 
-Promotion is governed by validation thresholds such as:
+Before promotion, the model must pass quality checks such as:
 
-* Minimum R²
+* Minimum R² score
 * Maximum MAE
-* Latency constraints
-* Extreme error limits
+* Latency limits
+* Extreme prediction error checks
 
-The production alias determines which model version is served in the live API.
+Only approved models are promoted to production.
 
 ---
 
-## CI/CD Architecture
+## CI/CD Pipeline
 
-Deployment is triggered on push to the main branch.
+Deployment starts automatically when code is pushed to the main branch.
 
-### CI Phase
+### CI Stage
 
 * Install dependencies
-* Run validation checks
+* Run checks and validation
+* Pull required artifacts with DVC
+* Promote model to staging
+* Promote model to production
+
+### CD Stage
+
 * Build Docker image
+* Run container health tests
 * Push image to Amazon ECR
+* Trigger AWS CodeDeploy
 
-### CD Phase
-
-* CodeDeploy initiates deployment
-* EC2 instance pulls latest Docker image
-* Existing container is stopped
-* New container is started
-* Health endpoint is validated
-
-Deployment succeeds only if the health check passes.
+This keeps deployment fast and consistent.
 
 ---
 
 ## Inference Service
 
-The model is served through a Dockerized FastAPI application.
+The model is served through a FastAPI application inside Docker.
 
-Endpoints:
+### Available Endpoints
 
-GET /health – Returns service status and model load state
-GET /docs – Interactive API documentation
-POST /predict – Returns estimated delivery time in minutes
+* `GET /health` → Service status
+* `GET /docs` → Interactive API documentation
+* `POST /predict` → Delivery time prediction
 
-The model is loaded during application startup from MLflow using the production alias.
+The production model is loaded during startup using MLflow registry aliases.
 
 ---
 
 ## AWS Infrastructure
 
-The deployment stack consists of:
+The deployment setup uses:
 
-* Amazon ECR – Docker image registry
-* Amazon EC2 – Application hosting
-* Auto Scaling Group (ASG) – Instance lifecycle management
-* AWS CodeDeploy – Deployment orchestration
-* IAM – Secure authentication and role-based access
+* **Amazon ECR** – stores Docker images
+* **Amazon EC2** – runs the application
+* **AWS CodeDeploy** – handles deployment process
+* **Auto Scaling Group** – manages EC2 lifecycle
+* **IAM** – access control and permissions
 
 ### Deployment Flow
 
-GitHub
-→ GitHub Actions
-→ Amazon ECR
-→ CodeDeploy
-→ EC2 (managed by ASG)
-→ Docker container
-→ FastAPI
-→ MLflow production model
-
-The Auto Scaling Group ensures controlled instance provisioning and replacement. CodeDeploy manages application rollout and validates health before marking deployment successful.
+GitHub  
+→ GitHub Actions  
+→ Amazon ECR  
+→ CodeDeploy  
+→ EC2 Instance  
+→ Docker Container  
+→ FastAPI API  
+→ Production Model  
 
 ---
 
-## Monitoring and Version Control
+## Monitoring and Reliability
 
 The system supports:
 
-* MLflow experiment tracking
-* Model versioning through Model Registry
+* Experiment tracking with MLflow
+* Model version history
 * Alias-based production control
-* Health-gated deployments
-* Container restart policy for resilience
+* Health check based deployments
+* Restartable Docker containers
+* Repeatable pipeline execution with DVC
 
 ---
 
 ## Rollback Strategy
 
-Rollback is handled at the model registry level.
+Rollback is simple.
 
-Reassign the production alias to a previous model version in MLflow. No code changes or redeployment are required.
+If a newer model causes issues, the production alias can be reassigned to any previous stable version inside MLflow.
+
+This avoids retraining or code changes.
 
 ---
 
 ## Key Outcomes
 
-* End-to-end MLOps implementation
-* Automated CI/CD pipeline
-* Containerized inference architecture
-* Alias-driven model lifecycle management
-* Health-validated production deployment
-* Infrastructure lifecycle control using ASG
+* Full end-to-end MLOps project
+* Real deployment workflow on AWS
+* CI/CD automation
+* Containerized inference API
+* Versioned model lifecycle management
+* Production style rollback strategy
+* Practical experience with real ML system design
