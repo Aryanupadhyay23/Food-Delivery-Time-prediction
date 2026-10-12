@@ -33,13 +33,32 @@ if docker ps -aq -f name=$CONTAINER_NAME | grep -q .; then
     docker rm $CONTAINER_NAME
 fi
 
+# Load environment variables (such as DAGSHUB_TOKEN) from .env / .env.fd files if present
+if [ -z "$DAGSHUB_TOKEN" ] && [ -f /home/ubuntu/.env.fd ]; then
+    set -a; source /home/ubuntu/.env.fd; set +a
+elif [ -z "$DAGSHUB_TOKEN" ] && [ -f /home/ubuntu/.env ]; then
+    set -a; source /home/ubuntu/.env; set +a
+elif [ -z "$DAGSHUB_TOKEN" ] && [ -f /home/ubuntu/app/.env.fd ]; then
+    set -a; source /home/ubuntu/app/.env.fd; set +a
+elif [ -z "$DAGSHUB_TOKEN" ] && [ -f /home/ubuntu/app/.env ]; then
+    set -a; source /home/ubuntu/app/.env; set +a
+elif [ -z "$DAGSHUB_TOKEN" ] && [ -f .env.fd ]; then
+    set -a; source .env.fd; set +a
+elif [ -z "$DAGSHUB_TOKEN" ] && [ -f .env ]; then
+    set -a; source .env; set +a
+fi
+
+if [ -z "$DAGSHUB_TOKEN" ]; then
+    echo "WARNING: DAGSHUB_TOKEN is not set in environment or .env file."
+fi
+
 echo "Starting new container..."
 
 docker run -d \
   --name $CONTAINER_NAME \
   --restart always \
   -p ${HOST_PORT}:${CONTAINER_PORT} \
-  -e DAGSHUB_TOKEN=16851a314ba5c13f8adb30964e6d87b7c4497394 \
+  -e DAGSHUB_TOKEN="$DAGSHUB_TOKEN" \
   $ECR_REGISTRY/$IMAGE_NAME:latest
 
 echo "Container started. Beginning health check..."

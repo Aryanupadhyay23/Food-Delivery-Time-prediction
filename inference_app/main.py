@@ -93,7 +93,7 @@ class DeliveryInput(BaseModel):
     ID: str = Field(..., min_length=1)
     Delivery_person_ID: str = Field(..., min_length=1)
 
-    Delivery_person_Age: float = Field(..., gt=18.0)
+    Delivery_person_Age: float = Field(..., ge=18.0)
     Delivery_person_Ratings: float = Field(..., ge=1.0, le=5.0)
 
     Restaurant_latitude: float = Field(..., ge=6.0, le=38.0)
@@ -115,8 +115,8 @@ class DeliveryInput(BaseModel):
     @field_validator("Delivery_person_Age")
     @classmethod
     def validate_age_strict(cls, v: float) -> float:
-        if v <= 18:
-            raise ValueError("Rider must be older than 18.")
+        if v < 18:
+            raise ValueError("Rider must be at least 18 years old.")
         return v
 
 

@@ -88,6 +88,11 @@ def rating_feature(df: pd.DataFrame) -> pd.DataFrame:
 
     initial_rows = len(df)
 
+    df["Delivery_person_Ratings"] = pd.to_numeric(
+        df["Delivery_person_Ratings"],
+        errors="coerce"
+    )
+
     df = df[df["Delivery_person_Ratings"] <= 5]
 
     removed_rows = initial_rows - len(df)

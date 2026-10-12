@@ -97,10 +97,10 @@ def compute_haversine(df: pd.DataFrame) -> pd.DataFrame:
         return df
 
     R = 6371.0
-    lat1 = np.radians(df["Restaurant_latitude"])
-    lon1 = np.radians(df["Restaurant_longitude"])
-    lat2 = np.radians(df["Delivery_location_latitude"])
-    lon2 = np.radians(df["Delivery_location_longitude"])
+    lat1 = np.radians(df["Restaurant_latitude"].abs())
+    lon1 = np.radians(df["Restaurant_longitude"].abs())
+    lat2 = np.radians(df["Delivery_location_latitude"].abs())
+    lon2 = np.radians(df["Delivery_location_longitude"].abs())
 
     a = (
         np.sin((lat2 - lat1) / 2) ** 2

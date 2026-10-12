@@ -278,11 +278,23 @@ def main():
             f"Evaluating model version {version_number}"
         )
 
-        model = mlflow.pyfunc.load_model(
-            f"models:/"
-            f"{REGISTERED_MODEL_NAME}"
-            f"@{CANDIDATE_ALIAS}"
-        )
+        local_model_path = root_path / "models" / "stacking_cat_rf_pipeline.joblib"
+
+        try:
+            model = mlflow.pyfunc.load_model(
+                f"models:/"
+                f"{REGISTERED_MODEL_NAME}"
+                f"@{CANDIDATE_ALIAS}"
+            )
+        except Exception as err:
+            if local_model_path.exists():
+                import joblib
+                logger.warning(
+                    f"MLflow model load failed ({err}). Falling back to local artifact {local_model_path}"
+                )
+                model = joblib.load(local_model_path)
+            else:
+                raise
 
         train_df = load_data(train_path)
         test_df = load_data(test_path)

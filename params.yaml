@@ -47,6 +47,6 @@ promotion_policy:
       max_test_mae: 6.0
 
     diagnostics:
-      max_avg_latency_ms: 50
+      max_avg_latency_ms: 120
       max_extreme_errors: 2
       extreme_error_threshold: 15

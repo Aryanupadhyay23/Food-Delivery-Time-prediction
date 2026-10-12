@@ -1,5 +1,3 @@
-'install_dependencies.sh'
-
 #!/bin/bash
 
 # Ensure that the script runs in non-interactive mode
