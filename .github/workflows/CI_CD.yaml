@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
+  # Set to "true" to run CI/CD, or set to "false" to turn off the entire CI/CD
+  ENABLE_CI_CD: "false"
+
   AWS_REGION: us-east-1
   ECR_REPOSITORY: food_delivery_time_prediction
   ECR_REGISTRY: 125840290869.dkr.ecr.us-east-1.amazonaws.com
@@ -21,8 +25,27 @@ env:
 
 jobs:
 
+  gate:
+    name: Check CI/CD Master Switch
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - name: Evaluate Master Switch
+        id: check
+        run: |
+          if [ "${{ env.ENABLE_CI_CD }}" = "true" ]; then
+            echo "CI/CD is ENABLED"
+            echo "enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "CI/CD is DISABLED in CI_CD.yaml (ENABLE_CI_CD=${{ env.ENABLE_CI_CD }})"
+            echo "enabled=false" >> $GITHUB_OUTPUT
+          fi
+
   ci:
     name: CI - Validate and Promote Model
+    needs: gate
+    if: needs.gate.outputs.enabled == 'true'
     runs-on: ubuntu-latest
 
     steps:
@@ -56,8 +79,30 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Pull DVC Artifacts
-        run: dvc pull
+      - name: Pull Raw Dataset via DVC
+        run: dvc pull data/raw/Zomato-Dataset.csv.dvc
+
+      - name: Execute Full DVC Pipeline
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_USER_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          MLFLOW_TRACKING_USERNAME: ${{ env.DAGSHUB_REPO_OWNER }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+          MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
+        run: |
+          dvc repro
+
+      - name: Push Generated Artifacts to DVC Remote
+        run: |
+          dvc push
+
+      - name: Commit updated dvc.lock and metrics
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add dvc.lock reports/
+          git diff --staged --quiet || git commit -m "chore(ci): update dvc.lock and reports [skip ci]"
+          git push || true
 
       - name: Promote Candidate to Staging
         env:
