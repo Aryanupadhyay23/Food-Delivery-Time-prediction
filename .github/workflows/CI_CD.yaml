@@ -106,6 +106,7 @@ jobs:
       - name: Promote Candidate to Staging
         env:
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_USER_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
           MLFLOW_TRACKING_USERNAME: ${{ env.DAGSHUB_REPO_OWNER }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}
@@ -115,6 +116,7 @@ jobs:
       - name: Promote Staging to Production
         env:
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_USER_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
           MLFLOW_TRACKING_USERNAME: ${{ env.DAGSHUB_REPO_OWNER }}
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
           MLFLOW_TRACKING_URI: ${{ env.MLFLOW_TRACKING_URI }}

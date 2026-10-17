@@ -4,7 +4,16 @@ import logging
 import subprocess
 from pathlib import Path
 from datetime import datetime
-import dagshub
+try:
+    from dotenv import load_dotenv
+    _repo_root = Path(__file__).resolve().parents[3]
+    if (_repo_root / ".env.fd").exists():
+        load_dotenv(_repo_root / ".env.fd")
+    elif (_repo_root / ".env").exists():
+        load_dotenv(_repo_root / ".env")
+except ImportError:
+    pass
+
 import mlflow
 from mlflow.tracking import MlflowClient
 
@@ -19,27 +28,24 @@ PIPELINE_RUN_FILE = REPORTS_DIR / "active_pipeline_run.json"
 
 
 def configure_mlflow():
-    """Configures centralized DagsHub MLflow tracking with authentication."""
-    token = os.environ.get("DAGSHUB_TOKEN")
+    """
+    Configures centralized MLflow tracking purely using tokens (no browser authentication).
+    Uses DAGSHUB_TOKEN / DAGSHUB_USER_TOKEN from .env/.env.fd locally or GitHub Secrets in CI.
+    """
+    token = os.environ.get("DAGSHUB_TOKEN") or os.environ.get("DAGSHUB_USER_TOKEN")
+    username = os.environ.get("MLFLOW_TRACKING_USERNAME", DAGSHUB_REPO_OWNER)
+
     if token:
-        os.environ["MLFLOW_TRACKING_USERNAME"] = os.environ.get(
-            "MLFLOW_TRACKING_USERNAME", DAGSHUB_REPO_OWNER
-        )
+        os.environ["MLFLOW_TRACKING_USERNAME"] = username
         os.environ["MLFLOW_TRACKING_PASSWORD"] = token
 
-    try:
-        dagshub.init(
-            repo_owner=DAGSHUB_REPO_OWNER,
-            repo_name=DAGSHUB_REPO_NAME,
-            mlflow=True
-        )
-    except Exception as e:
-        logger.warning(
-            f"dagshub.init warning ({e}). Falling back to MLflow tracking URI."
-        )
-
+    tracking_uri = os.environ.get(
+        "MLFLOW_TRACKING_URI",
+        f"https://dagshub.com/{DAGSHUB_REPO_OWNER}/{DAGSHUB_REPO_NAME}.mlflow"
+    )
+    mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(EXPERIMENT_NAME)
-    logger.info(f"MLflow experiment active: '{EXPERIMENT_NAME}'")
+    logger.info(f"MLflow tracking configured purely via token: '{tracking_uri}'")
 
 
 def get_git_commit() -> str:
