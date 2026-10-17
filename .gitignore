@@ -86,10 +86,11 @@ test_*.py
 
 # ── DVC & Data Artifacts ──────────────────────────────────────────────────────
 # Ignore raw & processed dataset files, but keep .dvc files and gitkeeps
-**/data/**
-!**/data/**/*.dvc
-!**/data/**/.gitignore
-!**/data/**/.gitkeep
+backend/data/**
+!backend/data/**/*.dvc
+!backend/data/**/.gitignore
+!backend/data/**/.gitkeep
+!backend/src/data/**
 
 # Ignore serialized models and preprocessors (managed via DVC / MLflow)
 **/models/*.joblib
@@ -106,3 +107,4 @@ test_*.py
 
 # Ignore transient MLflow pipeline orchestration state
 **/reports/active_pipeline_run.json
+backend/src/data/__pycache__/data_cleaning.cpython-311.pyc
