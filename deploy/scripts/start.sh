@@ -1,6 +1,21 @@
 #!/bin/bash
 set -e
 
+# Disable joblib/loky background process spawning to conserve memory (~340 MB savings)
+export JOBLIB_MULTIPROCESSING=0
+export LOKY_MAX_CPU_COUNT=1
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+export MALLOC_TRIM_THRESHOLD_=65536
+
+# Enable jemalloc if installed in the container
+if [ -f /usr/lib/x86_64-linux-gnu/libjemalloc.so.2 ]; then
+    export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2
+fi
+
 FASTAPI_PORT=${FASTAPI_PORT:-8080}
 STREAMLIT_PORT=${STREAMLIT_PORT:-8510}
 

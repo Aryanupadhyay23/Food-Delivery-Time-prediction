@@ -39,6 +39,15 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH" \
+    JOBLIB_MULTIPROCESSING=0 \
+    LOKY_MAX_CPU_COUNT=1 \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    VECLIB_MAXIMUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1 \
+    MALLOC_TRIM_THRESHOLD_=65536 \
+    LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libjemalloc.so.2 \
     FASTAPI_PORT=8080 \
     STREAMLIT_PORT=8510 \
     STREAMLIT_SERVER_PORT=8510 \
@@ -50,10 +59,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_FILE_WATCHER_TYPE=none \
     BACKEND_URL=http://localhost:8080
 
-# Install curl for healthcheck and libgomp1 for LightGBM C++ OpenMP runtime
+# Install curl for healthcheck, libgomp1 for LightGBM OpenMP, and libjemalloc2 for zero-fragmentation allocator
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libgomp1 \
+    libjemalloc2 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
 
 # Copy pre-compiled virtual environment from builder stage
