@@ -79,7 +79,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Pull Raw Dataset via DVC
-        run: dvc pull backend/data/raw/Zomato-Dataset.csv.dvc || dvc pull
+        run: dvc pull backend/data/raw/Zomato-Dataset.csv.dvc
 
       - name: Execute Full DVC Pipeline
         env:
