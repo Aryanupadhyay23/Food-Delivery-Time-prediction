@@ -346,7 +346,8 @@ All cloud resources are deployed in the Sydney region:
 | AWS Service | Resource / Setting | Configured Value |
 | :--- | :--- | :--- |
 | **AWS Region** | Default Region | `ap-southeast-2` *(Sydney)* |
-| **Amazon ECR** | Repository Name | `fooddeliverytimepredictiondeployment` |
+| **Amazon ECR** | Repository Name | `food_delivery_time_prediction` |
+| **Amazon ECR** | Full Repository URI | `308525896139.dkr.ecr.ap-southeast-2.amazonaws.com/food_delivery_time_prediction` |
 | **Amazon S3** | Deployment Bundle Bucket | `fooddeliverytimepredictiondeployments3` |
 | **Amazon S3** | DVC Dataset Remote Storage | `ai-ml-datasets-2301` |
 | **AWS CodeDeploy**| Application Name | `food-delivery-time-prediction-app` |

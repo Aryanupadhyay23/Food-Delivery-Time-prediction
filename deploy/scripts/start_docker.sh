@@ -6,9 +6,9 @@ set -e
 exec > /home/ubuntu/start_docker.log 2>&1
 
 AWS_REGION="ap-southeast-2"
-AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "125840290869")}
+AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo "308525896139")}
 ECR_REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-IMAGE_NAME="fooddeliverytimepredictiondeployment"
+IMAGE_NAME="food_delivery_time_prediction"
 CONTAINER_NAME="delivery_time_pred"
 STREAMLIT_HOST_PORT=${STREAMLIT_HOST_PORT:-8510}
 FASTAPI_HOST_PORT=${FASTAPI_HOST_PORT:-8080}

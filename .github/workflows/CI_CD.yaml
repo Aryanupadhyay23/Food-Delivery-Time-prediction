@@ -14,7 +14,7 @@ env:
   ENABLE_CI_CD: "true"
 
   AWS_REGION: ap-southeast-2
-  ECR_REPOSITORY: fooddeliverytimepredictiondeployment
+  ECR_REPOSITORY: food_delivery_time_prediction
 
   DAGSHUB_REPO_OWNER: aryanupadhyay23
   DAGSHUB_REPO_NAME: Food-Delivery-Time-prediction
