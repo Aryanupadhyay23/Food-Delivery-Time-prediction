@@ -8,6 +8,7 @@ import joblib
 import yaml
 import mlflow
 import mlflow.sklearn
+from mlflow.exceptions import MlflowException
 from mlflow.models.signature import infer_signature
 from mlflow.tracking import MlflowClient
 
@@ -16,20 +17,23 @@ from sklearn.ensemble import RandomForestRegressor, StackingRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.pipeline import Pipeline
 from sklearn.compose import TransformedTargetRegressor
+from sklearn.preprocessing import PowerTransformer
 
 try:
     from backend.src.models.mlflow_utils import (
         configure_mlflow,
         start_pipeline_stage_run,
         clean_and_prefix,
-        get_git_commit
+        get_git_commit,
+        get_pipeline_run_id
     )
 except ImportError:
     from mlflow_utils import (
         configure_mlflow,
         start_pipeline_stage_run,
         clean_and_prefix,
-        get_git_commit
+        get_git_commit,
+        get_pipeline_run_id
     )
 
 
