@@ -13,37 +13,37 @@ stages:
       md5: a732ab879bba5f3a9b66a620d299069e
       size: 6371825
   data_cleaning:
-    cmd: python src/data/data_cleaning.py
+    cmd: python backend/src/data/data_cleaning.py
     deps:
-    - path: data/raw/Zomato-Dataset.csv
+    - path: backend/data/raw/Zomato-Dataset.csv
       hash: md5
       md5: a732ab879bba5f3a9b66a620d299069e
       size: 6371825
-    - path: src/data/data_cleaning.py
+    - path: backend/src/data/data_cleaning.py
       hash: md5
-      md5: 028dcf7c6b70a41284c31ef51ef62bca
-      size: 9701
+      md5: 4f00655e5da5883819c0c2fee606dfd0
+      size: 9827
     outs:
-    - path: data/processed/food_delivery_cleaned.csv
+    - path: backend/data/processed/food_delivery_cleaned.csv
       hash: md5
-      md5: e1275eb6013ad3fe84bd0c70dd0fc22f
-      size: 3792895
+      md5: 54bf4e43050d2f27693f30f38fc5361d
+      size: 3755585
   data_preprocessing:
-    cmd: python src/features/data_preprocessing.py
+    cmd: python backend/src/features/data_preprocessing.py
     deps:
-    - path: data/processed/train.csv
+    - path: backend/data/processed/train.csv
       hash: md5
-      md5: c2b2724f857109858056d7dc824d8249
-      size: 3031726
-    - path: src/features/data_preprocessing.py
+      md5: 6d2816cc803a6cb3ac7fd81c3aaeec0e
+      size: 3001882
+    - path: backend/src/features/data_preprocessing.py
       hash: md5
       md5: 032e2bbb3e7e63960abdb7d45763f151
       size: 4177
     outs:
-    - path: artifacts/preprocessor.pkl
+    - path: backend/artifacts/preprocessor.pkl
       hash: md5
-      md5: f3739bd393f7fcd90ade1755c3636f45
-      size: 6929
+      md5: 92b81424de3a980750e9ef0dd7680d09
+      size: 7854
   feature_selection:
     cmd: python src/features/feature_selection.py
     deps:
@@ -61,103 +61,103 @@ stages:
       md5: 9e75f43e6610bd5f8f5f4f9c35da5ff7
       size: 3861577
   data_splitting:
-    cmd: python src/features/data_splitting.py
+    cmd: python backend/src/features/data_splitting.py
     deps:
-    - path: data/processed/food_delivery_cleaned.csv
+    - path: backend/data/processed/food_delivery_cleaned.csv
       hash: md5
-      md5: e1275eb6013ad3fe84bd0c70dd0fc22f
-      size: 3792895
-    - path: params.yaml
+      md5: 54bf4e43050d2f27693f30f38fc5361d
+      size: 3755585
+    - path: backend/params.yaml
       hash: md5
-      md5: aca69e0824e047d6d37c0dd0a4a68b5c
-      size: 935
-    - path: src/features/data_splitting.py
+      md5: 24fc8f7f850ee630001ad9ade2e95c92
+      size: 995
+    - path: backend/src/features/data_splitting.py
       hash: md5
       md5: ebaef9d9a5ac910843809a6be4da2249
       size: 3274
     outs:
-    - path: data/processed/test.csv
+    - path: backend/data/processed/test.csv
       hash: md5
-      md5: 7a7829a736286c1a3bac7e241567ffcc
-      size: 758528
-    - path: data/processed/train.csv
+      md5: 76519ae580939dc9a3552dd4b65d0a87
+      size: 751059
+    - path: backend/data/processed/train.csv
       hash: md5
-      md5: c2b2724f857109858056d7dc824d8249
-      size: 3031726
+      md5: 6d2816cc803a6cb3ac7fd81c3aaeec0e
+      size: 3001882
   model_training:
-    cmd: python src/models/model_training.py
+    cmd: python backend/src/models/model_training.py
     deps:
-    - path: artifacts/preprocessor.pkl
+    - path: backend/artifacts/preprocessor.pkl
       hash: md5
-      md5: f3739bd393f7fcd90ade1755c3636f45
-      size: 6929
-    - path: data/processed/train.csv
+      md5: 92b81424de3a980750e9ef0dd7680d09
+      size: 7854
+    - path: backend/data/processed/train.csv
       hash: md5
-      md5: c2b2724f857109858056d7dc824d8249
-      size: 3031726
-    - path: params.yaml
+      md5: 6d2816cc803a6cb3ac7fd81c3aaeec0e
+      size: 3001882
+    - path: backend/params.yaml
       hash: md5
-      md5: aca69e0824e047d6d37c0dd0a4a68b5c
-      size: 935
-    - path: src/models/model_training.py
-      hash: md5
-      md5: 78b7c92a3d536ee7d2aa32f0fc2f0a2e
-      size: 9159
-    outs:
-    - path: models/stacking_cat_rf_pipeline.joblib
-      hash: md5
-      md5: c849db45e244d01ab5bb557dee8f39be
-      size: 120353806
-  model_evaluation:
-    cmd: python src/models/model_evaluation.py
-    deps:
-    - path: data/processed/test.csv
-      hash: md5
-      md5: 7a7829a736286c1a3bac7e241567ffcc
-      size: 758528
-    - path: data/processed/train.csv
-      hash: md5
-      md5: c2b2724f857109858056d7dc824d8249
-      size: 3031726
-    - path: models/stacking_cat_rf_pipeline.joblib
-      hash: md5
-      md5: c849db45e244d01ab5bb557dee8f39be
-      size: 120353806
-    - path: src/models/model_evaluation.py
-      hash: md5
-      md5: 6b9d4ebfa7107a8764431a3b95e465fa
-      size: 8218
-    outs:
-    - path: reports/metrics.json
-      hash: md5
-      md5: 7f749bbc7fb2488c7e677db9486312f2
+      md5: 24fc8f7f850ee630001ad9ade2e95c92
       size: 995
-  model_diagnostics:
-    cmd: python src/models/model_diagnostics.py
-    deps:
-    - path: data/processed/test.csv
+    - path: backend/src/models/model_training.py
       hash: md5
-      md5: 7a7829a736286c1a3bac7e241567ffcc
-      size: 758528
-    - path: models/stacking_cat_rf_pipeline.joblib
-      hash: md5
-      md5: c849db45e244d01ab5bb557dee8f39be
-      size: 120353806
-    - path: params.yaml
-      hash: md5
-      md5: aca69e0824e047d6d37c0dd0a4a68b5c
-      size: 935
-    - path: src/models/model_diagnostics.py
-      hash: md5
-      md5: 88c5bcbe2eb52bedc154fe77c9644dd3
-      size: 8013
+      md5: 43021e15b48d38cba099deb0391392c6
+      size: 11204
     outs:
-    - path: reports/diagnostics
+    - path: backend/models/stacking_lgb_rf_pipeline.joblib
       hash: md5
-      md5: c926230c6653f70df4146c598171ff28.dir
-      size: 106207
+      md5: 3e59fa071b815f5d667e9f8cdfdb2ed0
+      size: 105778910
+  model_evaluation:
+    cmd: python backend/src/models/model_evaluation.py
+    deps:
+    - path: backend/data/processed/test.csv
+      hash: md5
+      md5: 76519ae580939dc9a3552dd4b65d0a87
+      size: 751059
+    - path: backend/data/processed/train.csv
+      hash: md5
+      md5: 6d2816cc803a6cb3ac7fd81c3aaeec0e
+      size: 3001882
+    - path: backend/models/stacking_lgb_rf_pipeline.joblib
+      hash: md5
+      md5: 3e59fa071b815f5d667e9f8cdfdb2ed0
+      size: 105778910
+    - path: backend/src/models/model_evaluation.py
+      hash: md5
+      md5: dd3cd386a6d8e0c71c3244c5334fb76d
+      size: 7193
+    outs:
+    - path: backend/reports/metrics.json
+      hash: md5
+      md5: 4364937c11561c6ff4eac39e60981063
+      size: 1004
+  model_diagnostics:
+    cmd: python backend/src/models/model_diagnostics.py
+    deps:
+    - path: backend/data/processed/test.csv
+      hash: md5
+      md5: 76519ae580939dc9a3552dd4b65d0a87
+      size: 751059
+    - path: backend/models/stacking_lgb_rf_pipeline.joblib
+      hash: md5
+      md5: 3e59fa071b815f5d667e9f8cdfdb2ed0
+      size: 105778910
+    - path: backend/params.yaml
+      hash: md5
+      md5: 24fc8f7f850ee630001ad9ade2e95c92
+      size: 995
+    - path: backend/src/models/model_diagnostics.py
+      hash: md5
+      md5: 881fe4dada7d026ed3edb892fac99019
+      size: 9223
+    outs:
+    - path: backend/reports/diagnostics
+      hash: md5
+      md5: 11f39c6f2ef5c82483ff549b89d904b2.dir
+      size: 234842
       nfiles: 1
-    - path: reports/diagnostics_metrics.json
+    - path: backend/reports/diagnostics_metrics.json
       hash: md5
-      md5: 9964aa601768b8d1f6135d057836c2a9
-      size: 129
+      md5: 2ad78385e28cddebddd65077c8a355f7
+      size: 347
