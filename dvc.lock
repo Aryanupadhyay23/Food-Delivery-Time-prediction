@@ -130,7 +130,7 @@ stages:
     outs:
     - path: backend/reports/metrics.json
       hash: md5
-      md5: 4364937c11561c6ff4eac39e60981063
+      md5: 3946fb46e85d50c9c1eeb23c6347d085
       size: 1004
   model_diagnostics:
     cmd: python backend/src/models/model_diagnostics.py
@@ -159,5 +159,5 @@ stages:
       nfiles: 1
     - path: backend/reports/diagnostics_metrics.json
       hash: md5
-      md5: b4d12ba57c20694412813ae6af5dbd86
-      size: 347
+      md5: c47522050ca07b674b42508a0567b6a8
+      size: 346
