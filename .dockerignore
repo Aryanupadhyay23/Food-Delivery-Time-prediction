@@ -1,10 +1,70 @@
-data/
-artifacts/
-models/
-reports/
-notebooks/
-.dvc/
+# ==============================================================================
+# Docker Ignore Configuration
+# Excludes non-runtime files to ensure minimal build context and slim image
+# ==============================================================================
+
+# Version Control & CI/CD
+.git/
+.gitignore
+.gitattributes
 .github/
-__pycache__/
+
+# Python Virtual Environments & Packages
 .venv/
+venv/
+env/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Python Bytecode & Cache
+__pycache__/
+**/*.py[cod]
+**/*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Large Training Data, Artifacts, Notebooks & Pipeline Source
+.dvc/
+.dvcignore
+dvc.yaml
+dvc.lock
+**/data/
+**/notebooks/
+**/artifacts/
+**/models/
+**/reports/
+backend/src/
+backend/params.yaml
+backend/data/
+backend/notebooks/
+backend/reports/
+backend/artifacts/
+backend/models/
+
+# Secrets, Environment Files & Logs
 .env
+.env.*
+.env.fd
+*.log
+mlflow.db
+mlruns/
+
+# Deployment Package & Dev Requirements
+appspec.yml
+dev-requirements.txt
+deployment.zip
+test_*.py
+
+# IDE & Operating System Files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

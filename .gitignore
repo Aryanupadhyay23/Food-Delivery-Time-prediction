@@ -1,13 +1,15 @@
+# ==============================================================================
+# Git Ignore Configuration
+# ==============================================================================
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-
-# C extensions
+*$py.class
 *.so
 
 # Distribution / packaging
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -23,17 +25,15 @@ var/
 .installed.cfg
 *.egg
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
 
-# Installer logs
+# Installer & Test logs
 pip-log.txt
 pip-delete-this-directory.txt
-
-# Unit test / coverage reports
 htmlcov/
 .tox/
 .coverage
@@ -42,57 +42,67 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
+.pytest_cache/
+.mypy_cache/
 
 # Translations
 *.mo
 *.pot
 
-# Django stuff:
+# Logs, Databases & Local MLflow Runs
 *.log
+*.db
+*.rdb
+mlflow.db
+mlruns/
+.dvc/cache
+.dvc/tmp
 
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# DotEnv configuration
+# Secrets & DotEnv configuration (NEVER COMMIT CREDENTIALS)
 .env
 .env.*
 .env.fd
+.streamlit/secrets.toml
 
-# Database
-*.db
-*.rdb
-
-# Pycharm
-.idea
-
-# VS Code
+# IDE & Editor Configurations
+.idea/
 .vscode/
-
-# Spyder
 .spyproject/
-
-# Jupyter NB Checkpoints
-.ipynb_checkpoints/
-
-# ignore data files but allow .dvc metadata and inner .gitignore files
-data/**
-!data/**/*.dvc
-!data/**/.gitignore
-
-
-# Mac OS-specific storage files
-.DS_Store
-
-# vim
 *.swp
 *.swo
 
-# Mypy cache
-.mypy_cache/
-/artifacts/
-/models/
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
 
-pr.txt
+# Operating System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Deployment Artifacts & Scratch Scripts
+deployment.zip
+test_*.py
+
+# ── DVC & Data Artifacts ──────────────────────────────────────────────────────
+# Ignore raw & processed dataset files, but keep .dvc files and gitkeeps
+**/data/**
+!**/data/**/*.dvc
+!**/data/**/.gitignore
+!**/data/**/.gitkeep
+
+# Ignore serialized models and preprocessors (managed via DVC / MLflow)
+**/models/*.joblib
+**/models/*.pkl
+!**/models/.gitignore
+!**/models/.gitkeep
+
+**/artifacts/*.joblib
+**/artifacts/*.pkl
+!**/artifacts/.gitkeep
+
+# Ignore generated diagnostics plots output
+**/reports/diagnostics/
+
+# Ignore transient MLflow pipeline orchestration state
+**/reports/active_pipeline_run.json

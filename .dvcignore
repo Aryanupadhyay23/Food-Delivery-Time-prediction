@@ -1,3 +1,53 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
+# ==============================================================================
+# DVC Ignore Configuration
+# Optimizes DVC performance by ignoring non-data/pipeline directories
+# ==============================================================================
+
+# Git & CI/CD
+.git/
+.gitignore
+.github/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Frontend & Web UI (DVC tracks only backend ML pipeline)
+frontend/
+
+# Deployment & Docker configurations
+deploy/
+Dockerfile
+.dockerignore
+docker-compose.yml
+appspec.yml
+
+# Requirements & Documentation
+dev-requirements.txt
+docker-requirements.txt
+README.md
+**/README.md
+
+# Secrets, Environment Files & Logs
+.env
+.env.*
+.env.fd
+*.log
+mlflow.db
+*.db
+
+# Python Bytecode, Testing & Cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+
+# IDE & Operating System Files
+.vscode/
+.idea/
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+.DS_Store
+Thumbs.db

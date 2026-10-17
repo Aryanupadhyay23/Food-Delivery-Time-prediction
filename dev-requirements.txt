@@ -1,50 +1,39 @@
-# Core ML
-numpy==2.4.2
-pandas==2.3.3
+# ==============================================================================
+# Development, Training Pipeline & CI/CD Runner Dependencies
+# Only modules strictly required for DVC pipeline, testing, training & promotion
+# ==============================================================================
+
+# Core ML, Feature Engineering & Training Pipeline
+numpy==1.26.4
+pandas==2.2.3
 scikit-learn==1.5.2
-scipy==1.17.0
-catboost==1.2.8
-joblib==1.5.3
+scipy>=1.13.0
+lightgbm==4.6.0
+joblib==1.4.2
 
-# MLflow + Registry
-mlflow==3.9.0
-dagshub==0.6.5
-cloudpickle==3.1.2
+# Pipeline Configuration & Environment
+PyYAML>=6.0.1
+python-dotenv>=1.0.0
 
-# DVC
-dvc==3.66.1
-dvc-data==3.18.2
-dvc-http==2.32.0
-dvc-objects==5.2.0
-dvc-render==1.0.2
-dvc-studio-client==0.22.0
-dvc-task==0.40.2
-scmrepo==3.6.1
+# Experiment Tracking & Model Registry
+mlflow==2.19.0
+dagshub>=0.3.38
 
-# Plotting / Diagnostics
-matplotlib==3.10.8
-seaborn==0.13.2
-plotly==6.5.2
+# DVC Data Versioning & S3 Remote Storage
+dvc>=3.50.0
+dvc-s3>=3.0.0
 
-# Config
-PyYAML==6.0.3
-python-dotenv==1.2.1
-pyarrow==22.0.0
+# Model Diagnostics & Visualization (used in model_diagnostics.py)
+matplotlib>=3.8.0
+seaborn>=0.13.0
 
-# Testing / Lint
-pytest==8.3.4
-flake8==7.1.1
-black==24.10.0
+# Serving & UI (Local Testing & CI container health check)
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+streamlit>=1.30.0
+requests>=2.31.0
 
-# Notebook / Dev
-ipython==9.10.0
-ipykernel==7.2.0
-jupyter_client==8.8.0
-jupyter_core==5.9.1
-debugpy==1.8.20
-
-# Utilities
-requests==2.32.5
-tqdm==4.67.3
-
-dvc_s3
+# Code Quality Linting & Tests
+flake8>=7.0.0
+pytest>=8.0.0

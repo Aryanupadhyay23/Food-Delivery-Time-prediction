@@ -1,0 +1,14 @@
+# data/.gitignore
+
+# Ignore everything...
+*
+
+# ...BUT do not ignore subdirectories (This is the fix!)
+!*/
+
+# ...AND do not ignore .dvc files or this gitignore itself
+!*.dvc
+!**/*.dvc
+!.gitignore
+!.gitkeep
+!**/.gitkeep

@@ -1,61 +1,61 @@
 stages:
 
   data_cleaning:
-    cmd: python src/data/data_cleaning.py
+    cmd: python backend/src/data/data_cleaning.py
     deps:
-      - src/data/data_cleaning.py
-      - data/raw/Zomato-Dataset.csv
+      - backend/src/data/data_cleaning.py
+      - backend/data/raw/Zomato-Dataset.csv
     outs:
-      - data/processed/food_delivery_cleaned.csv
+      - backend/data/processed/food_delivery_cleaned.csv
 
   data_splitting:
-    cmd: python src/features/data_splitting.py
+    cmd: python backend/src/features/data_splitting.py
     deps:
-      - src/features/data_splitting.py
-      - data/processed/food_delivery_cleaned.csv
-      - params.yaml
+      - backend/src/features/data_splitting.py
+      - backend/data/processed/food_delivery_cleaned.csv
+      - backend/params.yaml
     outs:
-      - data/processed/train.csv
-      - data/processed/test.csv
+      - backend/data/processed/train.csv
+      - backend/data/processed/test.csv
 
   data_preprocessing:
-    cmd: python src/features/data_preprocessing.py
+    cmd: python backend/src/features/data_preprocessing.py
     deps:
-      - src/features/data_preprocessing.py
-      - data/processed/train.csv
+      - backend/src/features/data_preprocessing.py
+      - backend/data/processed/train.csv
     outs:
-      - artifacts/preprocessor.pkl
+      - backend/artifacts/preprocessor.pkl
 
   model_training:
-    cmd: python src/models/model_training.py
+    cmd: python backend/src/models/model_training.py
     deps:
-      - src/models/model_training.py
-      - data/processed/train.csv
-      - artifacts/preprocessor.pkl
-      - params.yaml
+      - backend/src/models/model_training.py
+      - backend/data/processed/train.csv
+      - backend/artifacts/preprocessor.pkl
+      - backend/params.yaml
     outs:
-      - models/stacking_cat_rf_pipeline.joblib
+      - backend/models/stacking_lgb_rf_pipeline.joblib
 
   model_evaluation:
-    cmd: python src/models/model_evaluation.py
+    cmd: python backend/src/models/model_evaluation.py
     deps:
-      - src/models/model_evaluation.py
-      - data/processed/train.csv
-      - data/processed/test.csv
-      - models/stacking_cat_rf_pipeline.joblib
+      - backend/src/models/model_evaluation.py
+      - backend/data/processed/train.csv
+      - backend/data/processed/test.csv
+      - backend/models/stacking_lgb_rf_pipeline.joblib
     metrics:
-      - reports/metrics.json:
+      - backend/reports/metrics.json:
           cache: false
 
   model_diagnostics:
-    cmd: python src/models/model_diagnostics.py
+    cmd: python backend/src/models/model_diagnostics.py
     deps:
-      - src/models/model_diagnostics.py
-      - data/processed/test.csv
-      - models/stacking_cat_rf_pipeline.joblib
-      - params.yaml
+      - backend/src/models/model_diagnostics.py
+      - backend/data/processed/test.csv
+      - backend/models/stacking_lgb_rf_pipeline.joblib
+      - backend/params.yaml
     metrics:
-      - reports/diagnostics_metrics.json:
+      - backend/reports/diagnostics_metrics.json:
           cache: false
     outs:
-      - reports/diagnostics
+      - backend/reports/diagnostics

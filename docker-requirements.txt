@@ -1,11 +1,28 @@
-fastapi==0.128.7
-uvicorn==0.40.0
-mlflow==3.9.0
-dagshub==0.6.5
-pandas==2.3.3
-numpy==2.4.2
+# ==============================================================================
+# Docker Production Runtime Dependencies (Slim Image)
+# Only modules strictly required to serve FastAPI & Streamlit UI
+# ==============================================================================
+
+# Web Framework & Serving
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+
+# Frontend UI & Client
+streamlit>=1.30.0
+requests>=2.31.0
+
+# Inference Pipeline Runtime & Stacking Regressor
+numpy==1.26.4
+pandas==2.2.3
 scikit-learn==1.5.2
-scipy==1.17.0
-catboost==1.2.8
-joblib==1.5.3
-python-dotenv==1.2.1
+scipy>=1.13.0
+lightgbm==4.6.0
+joblib==1.4.2
+
+# Configuration & Environment
+python-dotenv>=1.0.0
+
+# Remote Model Registry Access (MLflow & DagsHub)
+mlflow==2.19.0
+dagshub>=0.3.38
