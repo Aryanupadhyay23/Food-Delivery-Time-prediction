@@ -1,13 +1,13 @@
 {
-    "model_version": "6",
+    "model_version": "7",
     "extreme_error_count": 0,
     "extreme_error_rate_pct": 0.0,
     "extreme_error_threshold": 15.0,
-    "avg_latency_ms": 48.4949,
-    "p50_latency_ms": 49.0598,
-    "p90_latency_ms": 50.3104,
-    "p95_latency_ms": 50.7682,
-    "p99_latency_ms": 51.895,
-    "throughput_qps": 20.62,
+    "avg_latency_ms": 37.6626,
+    "p50_latency_ms": 37.0199,
+    "p90_latency_ms": 38.6853,
+    "p95_latency_ms": 39.9116,
+    "p99_latency_ms": 49.3618,
+    "throughput_qps": 26.55,
     "benchmark_iterations": 500
 }
