@@ -20,16 +20,27 @@ FASTAPI_PORT=${FASTAPI_PORT:-8080}
 STREAMLIT_PORT=${STREAMLIT_PORT:-8510}
 
 echo "Starting FastAPI Backend on port ${FASTAPI_PORT}..."
-uvicorn backend.main:app --host 0.0.0.0 --port "${FASTAPI_PORT}" &
+uvicorn backend.main:app \
+    --host 0.0.0.0 \
+    --port "${FASTAPI_PORT}" \
+    --root-path /food-delivery-backend &
 
 echo "Waiting for FastAPI Backend to be ready..."
+BACKEND_READY=false
+
 for i in {1..30}; do
     if curl -fsS "http://127.0.0.1:${FASTAPI_PORT}/health" | grep -q healthy; then
         echo "FastAPI Backend is healthy!"
+        BACKEND_READY=true
         break
     fi
     sleep 1
 done
+
+if [ "${BACKEND_READY}" != "true" ]; then
+    echo "ERROR: FastAPI backend failed to become healthy."
+    exit 1
+fi
 
 echo "Starting Streamlit Frontend on port ${STREAMLIT_PORT}..."
 exec streamlit run frontend/streamlit_app.py \
@@ -39,6 +50,7 @@ exec streamlit run frontend/streamlit_app.py \
     --server.baseUrlPath=food-delivery \
     --server.fileWatcherType=none \
     --browser.gatherUsageStats=false
+
 
 
 
