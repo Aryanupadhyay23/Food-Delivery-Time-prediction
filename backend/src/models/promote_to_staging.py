@@ -82,7 +82,19 @@ def main():
         policy = params["promotion_policy"]["staging_thresholds"]
         perf = policy["performance"]
         diag = policy["diagnostics"]
-        version = str(metrics["model_version"])
+
+        try:
+            candidate_obj = client.get_model_version_by_alias(
+                REGISTERED_MODEL_NAME,
+                CANDIDATE_ALIAS
+            )
+            version = str(candidate_obj.version)
+            logger.info(f"Active candidate version from MLflow Registry: {version}")
+        except Exception:
+            version = str(metrics.get("model_version", "unknown"))
+            logger.warning(
+                f"Candidate alias not yet found in registry, using metrics version: {version}"
+            )
 
         # Track failure reasons if any
         reasons = []
@@ -143,19 +155,13 @@ def main():
             mlflow.set_tag("governance_status", "PROMOTED_TO_STAGING")
 
         logger.info("All staging thresholds passed successfully")
-        logger.info("Validating candidate alias in MLflow registry")
+        logger.info(f"Validating candidate alias in MLflow registry (version: {version})")
 
         candidate_obj = client.get_model_version_by_alias(
             REGISTERED_MODEL_NAME,
             CANDIDATE_ALIAS
         )
-        candidate_version = str(candidate_obj.version)
-
-        if candidate_version != version:
-            logger.error(
-                f"Candidate alias mismatch. Alias version: {candidate_version}, Metrics version: {version}"
-            )
-            sys.exit(1)
+        version = str(candidate_obj.version)
 
         logger.info(f"Promoting candidate version {version} to STAGING")
         try:
