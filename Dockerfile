@@ -50,9 +50,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_FILE_WATCHER_TYPE=none \
     BACKEND_URL=http://localhost:8080
 
-# Install only curl for healthcheck, clean package cache immediately
+# Install curl for healthcheck and libgomp1 for LightGBM C++ OpenMP runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
 
 # Copy pre-compiled virtual environment from builder stage

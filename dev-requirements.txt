@@ -28,11 +28,13 @@ matplotlib>=3.8.0
 seaborn>=0.13.0
 
 # Serving & UI (Local Testing & CI container health check)
-fastapi==0.115.6
+fastapi>=0.115.6
+starlette>=1.5.0
 uvicorn==0.34.0
 pydantic==2.10.4
 streamlit>=1.30.0
 requests>=2.31.0
+psutil>=5.9.0
 
 # Code Quality Linting & Tests
 flake8>=7.0.0
