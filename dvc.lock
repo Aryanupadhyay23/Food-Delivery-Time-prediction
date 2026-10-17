@@ -159,5 +159,5 @@ stages:
       nfiles: 1
     - path: backend/reports/diagnostics_metrics.json
       hash: md5
-      md5: d2365fa08af40afe7cb57e6e2a4b51fd
+      md5: b6f30cbf2aea11d5e36092d8f102cf96
       size: 347
