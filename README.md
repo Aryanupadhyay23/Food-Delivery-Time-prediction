@@ -7,62 +7,76 @@
 [![DVC](https://img.shields.io/badge/DVC-S3_Remote-945DD6.svg?style=flat&logo=dvc&logoColor=white)](https://dvc.org/)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED.svg?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![AWS](https://img.shields.io/badge/AWS-ECR%20%7C%20S3%20%7C%20CodeDeploy%20%7C%20EC2-232F3E.svg?style=flat&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions%20%7C%20CodeDeploy-2088FF.svg?style=flat&logo=github-actions&logoColor=white)](https://github.com/Aryanupadhyay23/Food-Delivery-Time-prediction/actions)
 
 An enterprise-grade, production-tested Machine Learning Operations (MLOps) platform predicting food delivery durations using an ensemble **Stacking Regressor** (LightGBM + Random Forest + Decision Tree meta-learner). 
 
-The platform features automated data versioning via DVC with AWS S3, experiment tracking and model governance via DagsHub MLflow Model Registry, a decoupled FastAPI backend and Streamlit UI, multi-stage containerization, and fully automated CI/CD deployment to AWS EC2 via AWS CodeDeploy.
+The platform features automated data versioning via DVC with AWS S3, experiment tracking and model governance via DagsHub MLflow Model Registry, a decoupled FastAPI backend and Streamlit UI, multi-stage containerization with OS-level memory optimization, and fully automated CI/CD deployment to AWS EC2 via AWS CodeDeploy.
 
 ---
 
-## 🌐 Live Deployment & Interactive Endpoints
+## 🌐 Live Deployment (Available Mon – Fri, 9:00 AM – 5:00 PM)
 
-> ⏱️ **Operational Hours:** Live and accessible from **9:00 AM to 5:00 PM (Monday – Friday)**
-
-| Service | Live URL | Description / Swagger Spec |
+| Service | Live URL | Description |
 | :--- | :--- | :--- |
-| **Streamlit Studio UI** | [http://aryan-projects.duckdns.org:8510/](http://aryan-projects.duckdns.org:8510/) | Real-time map, fleet profile, and delivery estimation UI |
-| **FastAPI REST Service** | [http://aryan-projects.duckdns.org:8080/](http://aryan-projects.duckdns.org:8080/) | Asynchronous high-throughput inference engine |
-| **Swagger Interactive Docs** | [http://aryan-projects.duckdns.org:8080/docs](http://aryan-projects.duckdns.org:8080/docs) | Live OpenAPI testing console and schemas |
-| **Service Health Check** | [http://aryan-projects.duckdns.org:8080/health](http://aryan-projects.duckdns.org:8080/health) | Container health check endpoint |
-| **Model Registry Info** | [http://aryan-projects.duckdns.org:8080/model-info](http://aryan-projects.duckdns.org:8080/model-info) | Active MLflow model name, alias, and loaded status |
+| **Frontend (Streamlit)** | [https://aryan-projects.duckdns.org/food-delivery/](https://aryan-projects.duckdns.org/food-delivery/) | Real-time map, fleet profile, and delivery estimation UI |
+| **Backend (Swagger UI)** | [https://aryan-projects.duckdns.org/food-delivery-backend/docs](https://aryan-projects.duckdns.org/food-delivery-backend/docs) | Interactive OpenAPI testing console and schemas |
+
 
 ---
 
 ## 🏛️ System Architecture
 
 ```text
- ┌────────────────────────────────────────────────────────────────────────┐
- │                           DATA & TRAINING                              │
- │                                                                        │
- │   Raw CSV Data  ──[DVC Tracked]──> S3 (s3://ai-ml-datasets-2301)      │
- │        │                                                               │
- │        ▼                                                               │
- │   Data Preparation & Feature Pipeline (Haversine, Categorical, Time)   │
- │        │                                                               │
- │        ▼                                                               │
- │   Stacking Regressor Training (LightGBM + Random Forest + DecisionTree)│
- │        │                                                               │
- │        ▼                                                               │
- │   Model Governance Gate (R², MAE, Latency, Error Tolerances)           │
- │        │                                                               │
- │        ▼                                                               │
- │   MLflow Model Registry (models:/FoodDeliveryTimeModel@production)     │
- └───────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     │  (Dynamic Registry Pull via Token)
-                                     ▼
- ┌────────────────────────────────────────────────────────────────────────┐
- │                   PRODUCTION DOCKER CONTAINER                          │
- │                                                                        │
- │   ┌───────────────────────────┐     HTTP     ┌──────────────────────┐  │
- │   │  Streamlit Prediction UI  │  ─────────>  │   FastAPI Engine     │  │
- │   │        (Port 8510)        │              │     (Port 8080)      │  │
- │   └───────────────────────────┘              └──────────┬───────────┘  │
- │                                                         │              │
- │                                                         ▼              │
- │                                                MLflow In-Memory Model  │
- │                                                (Pure Remote Registry)  │
- └────────────────────────────────────────────────────────────────────────┘
+ ┌────────────────────────────────────────────────────────────────────────────────────────┐
+ │                              DATA & TRAINING PIPELINE                                  │
+ │                                                                                        │
+ │   Raw CSV Data  ──[DVC Tracked]──> S3 Remote (s3://ai-ml-datasets-2301)                │
+ │        │                                                                               │
+ │        ▼                                                                               │
+ │   Data Preparation & Feature Pipeline (Haversine Geo-Dist, Categorical, Time Features) │
+ │        │                                                                               │
+ │        ▼                                                                               │
+ │   Stacking Regressor Training (LightGBM + Random Forest + Decision Tree Meta-Learner)  │
+ │        │                                                                               │
+ │        ▼                                                                               │
+ │   Model Governance Gate (R² ≥ 0.82, MAE ≤ 6.0m, Latency ≤ 120ms, Extreme Residuals ≤ 2)│
+ │        │                                                                               │
+ │        ▼                                                                               │
+ │   MLflow Model Registry (models:/FoodDeliveryTimeModel@production)                     │
+ └──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                            │
+                                            │  Dynamic In-Memory Pull via Token
+                                            ▼
+ ┌────────────────────────────────────────────────────────────────────────────────────────┐
+ │                         AWS EC2 HOST (ap-southeast-2)                                  │
+ │                                                                                        │
+ │   Incoming HTTPS Requests (https://aryan-projects.duckdns.org)                         │
+ │        │                                                                               │
+ │        ▼                                                                               │
+ │   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+ │   │                   NGINX REVERSE PROXY & SSL TERMINATION                        │   │
+ │   │  - /food-delivery/        ─────────────> Proxy to Port 8510                    │   │
+ │   │  - /food-delivery-backend/ ────────────> Proxy to Port 8080                    │   │
+ │   └───────────────────────────────┬────────────────────────────────────────────────┘   │
+ │                                   │                                                    │
+ │                                   ▼                                                    │
+ │   ┌────────────────────────────────────────────────────────────────────────────────┐   │
+ │   │                      PRODUCTION DOCKER CONTAINER                               │   │
+ │   │                                                                                │   │
+ │   │   ┌───────────────────────────┐    Internal HTTP   ┌────────────────────────┐  │   │
+ │   │   │  Streamlit Prediction UI  │  ────────────────> │     FastAPI Engine     │  │   │
+ │   │   │        (Port 8510)        │                    │      (Port 8080)       │  │   │
+ │   │   │  --baseUrlPath=           │                    │  --root-path=          │  │   │
+ │   │   │  food-delivery            │                    │  /food-delivery-backend│  │   │
+ │   │   └───────────────────────────┘                    └───────────┬────────────┘  │   │
+ │   │                                                                │               │   │
+ │   │                                                                ▼               │   │
+ │   │                                                     MLflow In-Memory Model     │   │
+ │   │                                                     (Pure Remote Registry)     │   │
+ │   │                                                     jemalloc + malloc_trim     │   │
+ │   └────────────────────────────────────────────────────────────────────────────────┘   │
+ └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -71,23 +85,33 @@ The platform features automated data versioning via DVC with AWS S3, experiment 
 
 1. **Exclusively Remote MLflow Model Loading (Zero Local Fallback)**:
    - The FastAPI backend does not bundle or depend on static `.joblib` model files inside the Docker container.
-   - On container startup, it authenticates with DagsHub using `DAGSHUB_TOKEN` and loads `models:/FoodDeliveryTimeModel@production` directly into memory.
+   - On container startup, it authenticates with DagsHub using `DAGSHUB_TOKEN` and dynamically loads `models:/FoodDeliveryTimeModel@production` directly into memory.
    - Updating or rolling back models in production requires only re-pointing the `@production` alias in MLflow—no image rebuilding, no redeployment, and zero downtime.
 
-2. **DVC & AWS S3 Data Lineage**:
+2. **Container & OS-Level Memory Optimization (~340 MB RAM Saved)**:
+   - Disables Joblib multiprocessing and loky background subprocesses (`JOBLIB_MULTIPROCESSING=0`, `LOKY_MAX_CPU_COUNT=1`).
+   - Caps thread pool allocations (`OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`, `MKL_NUM_THREADS=1`).
+   - Integrates `libjemalloc.so.2` and programmatic heap trimming via `ctypes` calling `libc.malloc_trim(0)` to immediately release unreferenced C heap pages back to the host operating system.
+   - Configures a dedicated 2GB swap partition (`deploy/scripts/setup_swap.sh`) with `vm.swappiness=10` on the EC2 host to safeguard against OOM spikes.
+
+3. **Reverse Proxy Subpath Routing (`/food-delivery` & `/food-delivery-backend`)**:
+   - Streamlit runs with `--server.baseUrlPath=food-delivery` to ensure all assets and WebSockets route seamlessly behind Nginx reverse proxy.
+   - FastAPI runs with `--root-path /food-delivery-backend` so OpenAPI schemas, Swagger UI (`/docs`), and interactive consoles resolve correctly over HTTPS.
+
+4. **DVC & AWS S3 Data Lineage**:
    - Training datasets and raw data assets are tracked using DVC and stored remotely in AWS S3 (`s3://ai-ml-datasets-2301/zomato-food-delivery-time-prediction/dvc-store`).
    - Ensures full reproducibility of every stage: `data_cleaning` → `data_splitting` → `data_preprocessing` → `model_training` → `model_evaluation` → `model_diagnostics`.
 
-3. **Multi-Stage Slim Docker Architecture**:
-   - Uses multi-stage builds (`python:3.12-slim`) with pre-compiled wheels in `/opt/venv` to keep image size small and build times fast.
+5. **Multi-Stage Slim Docker Architecture**:
+   - Uses multi-stage builds (`python:3.12-slim`) with pre-compiled wheels in `/opt/venv` to keep image size minimal and build times fast.
    - Runs with a non-root security profile (`appuser`).
    - Includes a native `HEALTHCHECK` testing `curl -f http://localhost:8080/health`.
 
-4. **Multi-Project EC2 Isolation with Dedicated Ports**:
+6. **Multi-Project EC2 Isolation with Dedicated Ports**:
    - Dedicated ports: **FastAPI on `8080`**, **Streamlit on `8510`** (strictly avoiding ports `80`, `8000`, `8001`, `7860`, `8501`, `8502` used by other projects).
    - Dedicated environment file: Reads strictly from `/home/ubuntu/.env.fd` on EC2, preventing any overlap with standard `/home/ubuntu/.env`.
 
-5. **Dynamic AWS Identity CI/CD**:
+7. **Dynamic AWS Identity CI/CD**:
    - GitHub Actions workflow dynamically resolves AWS Account ID using `steps.login-ecr.outputs.registry` and `aws sts get-caller-identity`, ensuring seamless execution regardless of differing local and runner AWS accounts.
 
 ---
@@ -97,55 +121,56 @@ The platform features automated data versioning via DVC with AWS S3, experiment 
 ```text
 .
 ├── backend/
-│   ├── artifacts/               # Serialized preprocessor pipeline
+│   ├── artifacts/                    # Serialized preprocessor pipeline
 │   ├── data/
-│   │   ├── raw/                 # Versioned raw data (DVC pointer)
-│   │   └── processed/           # Processed train/test data splits
-│   ├── models/                  # Local training output directory
-│   ├── notebooks/               # Exploratory data analysis & tuning notebooks
-│   ├── reports/                 # Evaluation and diagnostic metrics
+│   │   ├── raw/                      # Versioned raw data (DVC pointer)
+│   │   └── processed/                # Processed train/test data splits
+│   ├── models/                       # Local training output directory
+│   ├── notebooks/                    # Exploratory data analysis & tuning notebooks
+│   ├── reports/                      # Evaluation and diagnostic metrics
 │   ├── src/
 │   │   ├── data/
-│   │   │   └── data_cleaning.py     # Missing value handling, outlier filtering & format normalization
+│   │   │   └── data_cleaning.py      # Missing value handling, outlier filtering & format normalization
 │   │   ├── features/
-│   │   │   ├── data_splitting.py    # Stratified train/test dataset partition
-│   │   │   └── data_preprocessing.py# ColumnTransformer (StandardScaler, OneHot, Ordinal)
+│   │   │   ├── data_splitting.py     # Stratified train/test dataset partition
+│   │   │   └── data_preprocessing.py # ColumnTransformer (StandardScaler, OneHot, Ordinal)
 │   │   └── models/
-│   │       ├── mlflow_utils.py      # MLflow & DagsHub run orchestration & lifecycle helpers
-│   │       ├── model_training.py    # LightGBM + Random Forest Stacking Regressor training
-│   │       ├── model_evaluation.py  # Test set evaluation ($R^2$, MAE, RMSE, error distribution)
-│   │       ├── model_diagnostics.py # Inference latency testing & extreme residual analysis
+│   │       ├── mlflow_utils.py       # MLflow & DagsHub run orchestration & lifecycle helpers
+│   │       ├── model_training.py     # LightGBM + Random Forest Stacking Regressor training
+│   │       ├── model_evaluation.py   # Test set evaluation (R², MAE, RMSE, error distribution)
+│   │       ├── model_diagnostics.py  # Inference latency testing & extreme residual analysis
 │   │       ├── promote_to_staging.py # Automated governance gate (staging validation)
 │   │       └── promote_to_production.py # Staging-to-production promotion in MLflow Registry
 │   ├── utility_files/
-│   │   └── inference_transformer.py # Production inference feature transformer (Haversine & time features)
-│   ├── main.py                  # Asynchronous FastAPI service (Port 8080)
-│   ├── params.yaml              # Hyperparameters, random seeds & promotion gate thresholds
-│   └── README.md                # Backend architecture & documentation
+│   │   └── inference_transformer.py  # Production inference feature transformer (Haversine & time features)
+│   ├── main.py                       # Asynchronous FastAPI service (Port 8080, root-path /food-delivery-backend)
+│   └── params.yaml                   # Hyperparameters, random seeds & promotion gate thresholds
 ├── frontend/
-│   ├── components.py            # Streamlit UI cards, metrics, and map widgets
-│   ├── config.py                # Frontend configuration & backend URL
-│   ├── api_client.py            # Resilient HTTP client connecting to FastAPI
-│   ├── city_registry.py         # Coordinate database for Indian metropolitan areas
-│   ├── state.py                 # Session state manager
-│   ├── styles.py                # Custom CSS styling tokens
-│   ├── utils.py                 # Time, date, and coordinate helpers
-│   └── streamlit_app.py         # Streamlit Prediction Studio (Port 8510)
+│   ├── components.py                 # Streamlit UI cards, metrics, and map widgets
+│   ├── config.py                     # Frontend configuration & backend URL
+│   ├── api_client.py                 # Resilient HTTP client connecting to FastAPI
+│   ├── city_registry.py              # Coordinate database for Indian metropolitan areas
+│   ├── state.py                      # Session state manager
+│   ├── styles.py                     # Custom CSS styling tokens
+│   ├── utils.py                      # Time, date, and coordinate helpers
+│   └── streamlit_app.py              # Streamlit Prediction Studio (Port 8510, baseUrlPath food-delivery)
 ├── deploy/
 │   └── scripts/
-│       ├── install_dependencies.sh # EC2 setup script (Docker & AWS CLI v2)
-│       ├── start.sh             # Dual-process container supervisor
-│       └── start_docker.sh      # CodeDeploy container lifecycle & deployment script
+│       ├── install_dependencies.sh   # EC2 setup script (Docker & AWS CLI v2)
+│       ├── setup_swap.sh             # EC2 2GB swap creation with swappiness=10
+│       ├── start.sh                  # Dual-process container supervisor (FastAPI + Streamlit)
+│       └── start_docker.sh           # CodeDeploy container lifecycle & deployment script
 ├── .dvc/
-│   └── config                   # S3 remote storage configuration
+│   └── config                        # S3 remote storage configuration
 ├── .github/workflows/
-│   └── CI_CD.yaml               # GitHub Actions CI/CD pipeline
-├── Dockerfile                   # Multi-stage production container definition
-├── dev-requirements.txt         # Development, training, and CI runner dependencies
-├── docker-requirements.txt      # Production runtime container dependencies
-├── dvc.yaml                     # DVC automated stage pipeline definition
-├── appspec.yml                  # AWS CodeDeploy deployment hooks
-└── README.md                    # Project documentation
+│   └── CI_CD.yaml                    # GitHub Actions CI/CD pipeline
+├── Dockerfile                        # Multi-stage production container definition
+├── dev-requirements.txt              # Development, training, and CI runner dependencies
+├── docker-requirements.txt           # Production runtime container dependencies
+├── dvc.yaml                          # DVC automated stage pipeline definition
+├── dvc.lock                          # DVC pipeline lockfile
+├── appspec.yml                       # AWS CodeDeploy deployment hooks
+└── README.md                         # Project documentation
 ```
 
 ---
@@ -201,11 +226,11 @@ The core model is an ensemble **Stacking Regressor** wrapped in a `TransformedTa
 
 | Metric | Target | Actual Result | Status |
 | :--- | :--- | :--- | :--- |
-| **$R^2$ Score** | $\ge 0.80$ | **`0.8396`** |  Passed |
-| **MAE** | $\le 3.50$ mins | **`3.0409`** mins |  Passed |
-| **RMSE** | $\le 4.20$ mins | **`3.7695`** mins |  Passed |
-| **Median AE** | $\le 3.00$ mins | **`2.6693`** mins |  Passed |
-| **Average Latency** | $\le 25$ ms | **`6.8`** ms |  Passed |
+| **$R^2$ Score** | $\ge 0.80$ | **`0.8396`** | Passed |
+| **MAE** | $\le 3.50$ mins | **`3.0409`** mins | Passed |
+| **RMSE** | $\le 4.20$ mins | **`3.7695`** mins | Passed |
+| **Median AE** | $\le 3.00$ mins | **`2.6693`** mins | Passed |
+| **Average Latency** | $\le 25$ ms | **`6.8`** ms | Passed |
 
 ---
 
@@ -246,11 +271,11 @@ git push origin master
 
 ## 📡 REST API Reference
 
-The FastAPI service exposes the following endpoints on port **`8080`**:
+The FastAPI service is deployed at **`https://aryan-projects.duckdns.org/food-delivery-backend`** (or `http://localhost:8080` locally).
 
 ### 1. Health Check
 ```bash
-curl -X GET http://aryan-projects.duckdns.org:8080/health
+curl -X GET "https://aryan-projects.duckdns.org/food-delivery-backend/health"
 ```
 **Response**:
 ```json
@@ -264,7 +289,7 @@ curl -X GET http://aryan-projects.duckdns.org:8080/health
 
 ### 2. Model Information
 ```bash
-curl -X GET http://aryan-projects.duckdns.org:8080/model-info
+curl -X GET "https://aryan-projects.duckdns.org/food-delivery-backend/model-info"
 ```
 **Response**:
 ```json
@@ -277,7 +302,7 @@ curl -X GET http://aryan-projects.duckdns.org:8080/model-info
 
 ### 3. Predict Single Order Delivery Duration
 ```bash
-curl -X POST http://aryan-projects.duckdns.org:8080/predict \
+curl -X POST "https://aryan-projects.duckdns.org/food-delivery-backend/predict" \
   -H "Content-Type: application/json" \
   -d '{
     "Restaurant_latitude": 19.0760,
@@ -296,7 +321,7 @@ curl -X POST http://aryan-projects.duckdns.org:8080/predict \
     "City": "Metropolitian",
     "ID": "ORD_001",
     "Type_of_order": "Meal",
-    "Order_Date": "17-10-2026",
+    "Order_Date": "18-10-2026",
     "Time_Orderd": "19:30"
   }'
 ```
@@ -309,7 +334,7 @@ curl -X POST http://aryan-projects.duckdns.org:8080/predict \
 
 ### 4. Batch Prediction
 ```bash
-curl -X POST http://aryan-projects.duckdns.org:8080/predict/batch \
+curl -X POST "https://aryan-projects.duckdns.org/food-delivery-backend/predict/batch" \
   -H "Content-Type: application/json" \
   -d '{
     "orders": [
@@ -330,12 +355,37 @@ curl -X POST http://aryan-projects.duckdns.org:8080/predict/batch \
         "City": "Metropolitian",
         "ID": "ORD_001",
         "Type_of_order": "Meal",
-        "Order_Date": "17-10-2026",
+        "Order_Date": "18-10-2026",
         "Time_Orderd": "19:30"
       }
     ]
   }'
 ```
+**Response**:
+```json
+{
+  "predictions": [
+    {
+      "order_id": "ORD_001",
+      "estimated_delivery_minutes": 14.3
+    }
+  ],
+  "total_orders": 1
+}
+```
+
+---
+
+## 🎨 Streamlit Prediction Studio
+
+Access the interactive frontend at **[https://aryan-projects.duckdns.org/food-delivery/](https://aryan-projects.duckdns.org/food-delivery/)**.
+
+### Features:
+- **Interactive City & Route Selector**: Preset coordinate registries for top metropolitan hubs (Bangalore, Mumbai, Delhi, Hyderabad, Pune, Kolkata, Chennai).
+- **Interactive Route Map**: Visualizes restaurant origin, delivery destination, and Haversine distance straight line or road corridor.
+- **Fleet & Driver Profiling**: Real-time sliders for rider age, partner rating, vehicle condition, and active parallel orders.
+- **Environmental Modifiers**: Toggle weather dynamics (Sunny, Stormy, Sandstorms, Fog, Windy) and traffic density (Low, Medium, High, Jam).
+- **Instant Inference Display**: Displays estimated delivery minutes with traffic delta and status badges.
 
 ---
 
@@ -354,7 +404,9 @@ All cloud resources are deployed in the Sydney region:
 | **AWS CodeDeploy**| Deployment Group | `food-delivery-time-prediction-group` |
 | **Amazon EC2** | Target User & Directory | `ubuntu` (`/home/ubuntu`) |
 | **Amazon EC2** | Environment Config | `/home/ubuntu/.env.fd` *(strictly isolated)* |
+| **Amazon EC2** | Swap File Allocation | `2GB` (`/swapfile`, `vm.swappiness=10`) |
 | **Inbound Security Group** | Ports Exposed | `8510` (Streamlit), `8080` (FastAPI), `22` (SSH) |
+| **Public SSL/TLS Routing** | Domain & Paths | `https://aryan-projects.duckdns.org/food-delivery/`<br>`https://aryan-projects.duckdns.org/food-delivery-backend/` |
 
 ---
 

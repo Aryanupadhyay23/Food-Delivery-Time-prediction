@@ -11,7 +11,7 @@ permissions:
 
 env:
   # Set to "true" to run CI/CD, or set to "false" to turn off the entire CI/CD
-  ENABLE_CI_CD: "true"
+  ENABLE_CI_CD: "false"
 
   AWS_REGION: ap-southeast-2
   ECR_REPOSITORY: food_delivery_time_prediction
